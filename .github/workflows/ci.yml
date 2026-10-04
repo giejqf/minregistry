@@ -144,4 +144,5 @@ jobs:
           path: |
             e2e/.work/conformance/
             e2e/.work/*.log
+          include-hidden-files: true
           if-no-files-found: ignore
