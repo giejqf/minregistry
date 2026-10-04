@@ -19,7 +19,7 @@ use tower_sessions::{
 use super::{Principal, PrincipalKind};
 use crate::{
     app::AppState,
-    config::ServeConfig,
+    config::Config,
     db::{self, Db},
     error::AppError,
     registry::error::OciCode,
@@ -99,7 +99,7 @@ impl SessionStore for SqliteSessionStore {
 }
 
 pub(crate) fn layer(
-    cfg: &ServeConfig,
+    cfg: &Config,
     store: SqliteSessionStore,
 ) -> SessionManagerLayer<SqliteSessionStore, tower_sessions::service::PrivateCookie> {
     SessionManagerLayer::new(store)

@@ -143,7 +143,7 @@ impl TestServer {
         for (k, v) in extra {
             vars.insert(k.to_string(), v.to_string());
         }
-        let cfg = minregistry::ServeConfig::from_lookup(&|k| vars.get(k).cloned()).unwrap();
+        let cfg = minregistry::Config::from_lookup(&|k| vars.get(k).cloned()).unwrap();
         let app = minregistry::App::build(cfg).await.unwrap();
         tokio::spawn(async move {
             app.serve(listener, std::future::pending()).await.unwrap();

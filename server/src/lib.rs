@@ -24,7 +24,7 @@ pub(crate) mod ui;
 
 pub use api::openapi_json;
 pub use app::App;
-pub use config::{CoreConfig, ServeConfig};
+pub use config::{Config, CoreConfig};
 
 /// TLS for outgoing HTTPS (GitHub, S3) uses rustls with the `ring` provider.
 pub(crate) fn install_crypto_provider() {

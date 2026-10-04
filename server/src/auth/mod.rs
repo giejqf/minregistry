@@ -16,7 +16,7 @@ pub(crate) use authz::{Action, Level};
 pub(crate) use basic::RegistryPrincipal;
 pub(crate) use session::AdminSession;
 
-use crate::{config::ServeConfig, db::principals::PrincipalRow};
+use crate::{config::Config, db::principals::PrincipalRow};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum PrincipalKind {
@@ -38,7 +38,7 @@ impl Principal {
     /// while their login is in `MINREGISTRY_ADMIN_GITHUB_LOGINS`; a GitHub
     /// principal removed from that list cannot authenticate at all
     /// (docs/adr/0002). Disabled principals cannot authenticate either.
-    pub(crate) fn from_row(row: &PrincipalRow, cfg: &ServeConfig) -> Option<Principal> {
+    pub(crate) fn from_row(row: &PrincipalRow, cfg: &Config) -> Option<Principal> {
         if !row.enabled {
             return None;
         }

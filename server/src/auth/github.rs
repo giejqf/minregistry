@@ -19,7 +19,7 @@ use super::session::{OAUTH_NEXT_KEY, OAUTH_STATE_KEY, PRINCIPAL_KEY};
 use crate::{
     app::AppState,
     audit::{action, AuditEvent, ClientInfo, Outcome},
-    config::ServeConfig,
+    config::Config,
     db::{self, principals::KIND_GITHUB},
     error::AppError,
 };
@@ -33,7 +33,7 @@ pub(crate) fn routes() -> Router<AppState> {
 
 type GithubClient = BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>;
 
-fn oauth_client(cfg: &ServeConfig) -> anyhow::Result<GithubClient> {
+fn oauth_client(cfg: &Config) -> anyhow::Result<GithubClient> {
     let base = cfg.github.base_url.as_str().trim_end_matches('/');
     let callback = cfg.public_url.join("/auth/github/callback")?;
     Ok(BasicClient::new(ClientId::new(cfg.github.client_id.clone()))

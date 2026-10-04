@@ -2,24 +2,50 @@
 //! and parsing of `/v2/` paths (names contain slashes, so routes are matched
 //! from the end of the path).
 
-use std::sync::LazyLock;
-
-use regex::Regex;
-
-static NAME_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*$").expect("valid regex")
-});
-static TAG_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}$").expect("valid regex"));
-
 pub(crate) const MAX_NAME_LEN: usize = 255;
 
-pub(crate) fn valid_name(name: &str) -> bool {
-    name.len() <= MAX_NAME_LEN && NAME_RE.is_match(name)
+fn is_alnum(b: u8) -> bool {
+    b.is_ascii_lowercase() || b.is_ascii_digit()
 }
 
+/// One path component: `[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*`.
+fn valid_component(c: &str) -> bool {
+    let b = c.as_bytes();
+    let mut i = 0;
+    loop {
+        let run = i;
+        while i < b.len() && is_alnum(b[i]) {
+            i += 1;
+        }
+        if i == run {
+            return false;
+        }
+        if i == b.len() {
+            return true;
+        }
+        let sep = i;
+        while i < b.len() && !is_alnum(b[i]) {
+            i += 1;
+        }
+        let sep = &c[sep..i];
+        let ok = matches!(sep, "." | "_" | "__") || sep.bytes().all(|x| x == b'-');
+        if !ok || i == b.len() {
+            return false;
+        }
+    }
+}
+
+/// Repository names per the distribution spec:
+/// `[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(\/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*`, at most 255 bytes.
+pub(crate) fn valid_name(name: &str) -> bool {
+    name.len() <= MAX_NAME_LEN && name.split('/').all(valid_component)
+}
+
+/// Tags: `[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}`.
 pub(crate) fn valid_tag(tag: &str) -> bool {
-    TAG_RE.is_match(tag)
+    let b = tag.as_bytes();
+    let tail_ok = |x: &u8| x.is_ascii_alphanumeric() || matches!(x, b'.' | b'_' | b'-');
+    !b.is_empty() && b.len() <= 128 && (b[0].is_ascii_alphanumeric() || b[0] == b'_') && b[1..].iter().all(tail_ok)
 }
 
 #[derive(Debug, PartialEq, Eq)]

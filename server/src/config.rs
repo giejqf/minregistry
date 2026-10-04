@@ -83,7 +83,7 @@ impl fmt::Debug for GithubConfig {
 
 /// Full configuration of the `serve` command.
 #[derive(Clone)]
-pub struct ServeConfig {
+pub struct Config {
     pub core: CoreConfig,
     pub listen: SocketAddr,
     pub public_url: Url,
@@ -94,9 +94,9 @@ pub struct ServeConfig {
     pub session_secret: Vec<u8>,
 }
 
-impl fmt::Debug for ServeConfig {
+impl fmt::Debug for Config {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ServeConfig")
+        f.debug_struct("Config")
             .field("core", &self.core)
             .field("listen", &self.listen)
             .field("public_url", &self.public_url.as_str())
@@ -108,7 +108,7 @@ impl fmt::Debug for ServeConfig {
     }
 }
 
-impl ServeConfig {
+impl Config {
     /// Reads the process environment.
     pub fn from_env() -> Result<Self, ConfigError> {
         Self::from_lookup(&|key| std::env::var(key).ok())
@@ -191,7 +191,7 @@ impl ServeConfig {
                 Some(api_url),
                 Some(admin_logins),
                 Some(session_secret),
-            ) => Ok(ServeConfig {
+            ) => Ok(Config {
                 core,
                 listen,
                 public_url,
@@ -434,7 +434,7 @@ mod tests {
 
     #[test]
     fn defaults() {
-        let cfg = ServeConfig::from_lookup(&lookup(&base())).unwrap();
+        let cfg = Config::from_lookup(&lookup(&base())).unwrap();
         assert_eq!(cfg.listen.to_string(), "0.0.0.0:5000");
         assert_eq!(cfg.admin_logins, vec!["alice", "bob"]);
         assert!(cfg.is_admin_login("ALICE"));
@@ -447,7 +447,7 @@ mod tests {
 
     #[test]
     fn reports_all_errors() {
-        let err = ServeConfig::from_lookup(&lookup(&[
+        let err = Config::from_lookup(&lookup(&[
             ("MINREGISTRY_STORAGE", "s3"),
             ("MINREGISTRY_SESSION_SECRET", "c2hvcnQ="),
             ("MINREGISTRY_UPLOAD_TTL", "soon"),
@@ -477,7 +477,7 @@ mod tests {
             ("MINREGISTRY_S3_PATH_STYLE", "true"),
             ("MINREGISTRY_GC_CRON", "0 3 * * *"),
         ]);
-        let cfg = ServeConfig::from_lookup(&lookup(&vars)).unwrap();
+        let cfg = Config::from_lookup(&lookup(&vars)).unwrap();
         let StorageConfig::S3(s3) = &cfg.core.storage else { panic!("expected s3") };
         assert_eq!(s3.endpoint.as_deref(), Some("http://127.0.0.1:9000"));
         assert!(s3.path_style);
@@ -485,7 +485,7 @@ mod tests {
 
         vars.push(("MINREGISTRY_GC_CRON", "not a cron"));
         let map: HashMap<_, _> = vars.into_iter().collect();
-        let err = ServeConfig::from_lookup(&|k| map.get(k).map(|v| v.to_string())).unwrap_err();
+        let err = Config::from_lookup(&|k| map.get(k).map(|v| v.to_string())).unwrap_err();
         assert!(err.to_string().contains("MINREGISTRY_GC_CRON"));
     }
 

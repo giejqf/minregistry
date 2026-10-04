@@ -26,7 +26,7 @@ use crate::{
     api,
     audit::AuditLog,
     auth::{self, session::SqliteSessionStore},
-    config::ServeConfig,
+    config::Config,
     db::Db,
     digest::Digest,
     registry::{self, UploadManager},
@@ -35,7 +35,7 @@ use crate::{
 };
 
 pub(crate) struct StateInner {
-    pub cfg: ServeConfig,
+    pub cfg: Config,
     pub db: Db,
     pub storage: Arc<dyn Storage>,
     pub uploads: UploadManager,
@@ -67,7 +67,7 @@ pub struct App {
 
 impl App {
     /// Opens the database (applying migrations), storage and upload staging.
-    pub async fn build(cfg: ServeConfig) -> anyhow::Result<App> {
+    pub async fn build(cfg: Config) -> anyhow::Result<App> {
         crate::install_crypto_provider();
         let db = Db::open(&cfg.core.db_path).await?;
         db.migrate().await?;

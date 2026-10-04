@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
 
 use crate::{
     audit::{action, AuditEvent, AuditLog, Outcome},
-    config::{CoreConfig, LogFormat, ServeConfig},
+    config::{Config, CoreConfig, LogFormat},
     db::Db,
     gc::{self, GcOptions},
     App,
@@ -89,7 +89,7 @@ fn init_tracing(core: &CoreConfig) {
 }
 
 async fn serve() -> anyhow::Result<()> {
-    let cfg = ServeConfig::from_env()?;
+    let cfg = Config::from_env()?;
     init_tracing(&cfg.core);
     tracing::info!(listen = %cfg.listen, public_url = %cfg.public_url, storage = ?cfg.core.storage, "starting MinRegistry {}", env!("CARGO_PKG_VERSION"));
     let listen = cfg.listen;

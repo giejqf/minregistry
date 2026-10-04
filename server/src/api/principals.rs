@@ -1,13 +1,12 @@
 //! Principals (GitHub admins and token-only identities) and their tokens.
 
-use std::{collections::HashMap, sync::LazyLock};
+use std::collections::HashMap;
 
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     Json,
 };
-use regex::Regex;
 
 use super::{admin_event, dto::*, parse_id, validation};
 use crate::{
@@ -23,8 +22,20 @@ use crate::{
     registry::OciCode,
 };
 
-static IDENTITY_NAME: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[a-z0-9]([a-z0-9._-]{0,62}[a-z0-9])?$").expect("valid regex"));
+/// Identity names: `^[a-z0-9]([a-z0-9._-]{0,62}[a-z0-9])?$`.
+pub(crate) fn valid_identity_name(name: &str) -> bool {
+    let b = name.as_bytes();
+    let alnum = |x: u8| x.is_ascii_lowercase() || x.is_ascii_digit();
+    match (b.first(), b.last()) {
+        (Some(&first), Some(&last)) => {
+            b.len() <= 64
+                && alnum(first)
+                && alnum(last)
+                && b.iter().all(|&x| alnum(x) || matches!(x, b'.' | b'_' | b'-'))
+        }
+        _ => false,
+    }
+}
 
 pub(crate) fn kind(row: &PrincipalRow) -> PrincipalKind {
     if row.kind == KIND_GITHUB {
@@ -127,7 +138,7 @@ pub(crate) async fn create_identity(
     Json(req): Json<CreateIdentityRequest>,
 ) -> AppResult<(StatusCode, Json<PrincipalSummary>)> {
     let name = req.name.trim().to_string();
-    if !IDENTITY_NAME.is_match(&name) {
+    if !valid_identity_name(&name) {
         return Err(validation(
             "name must be 1-64 lower-case letters, digits, '.', '_' or '-', starting and ending with a letter or digit",
         ));
@@ -353,4 +364,19 @@ pub(crate) async fn revoke_token(
         )
         .await;
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::valid_identity_name;
+
+    #[test]
+    fn identity_names() {
+        for ok in ["a", "ci-deploy", "alice.smith", "bot_1", &"a".repeat(64)] {
+            assert!(valid_identity_name(ok), "{ok}");
+        }
+        for bad in ["", "-a", "a-", "Alice", "a b", "a/b", ".a", &"a".repeat(65)] {
+            assert!(!valid_identity_name(bad), "{bad}");
+        }
+    }
 }

@@ -1527,7 +1527,6 @@ dependencies = [
  "mime_guess",
  "oauth2",
  "object_store",
- "regex",
  "reqwest",
  "rust-embed",
  "rustls",
