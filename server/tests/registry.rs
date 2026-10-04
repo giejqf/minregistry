@@ -389,13 +389,16 @@ async fn auth_matrix() {
     srv.assert_audit("reader", "blob.upload", Some("secret/app"), None, "denied").await;
     srv.assert_audit("reader", "tag.delete", Some("secret/app"), None, "denied").await;
 
-    // No grant: 403 for an existing repository and for a missing one (no leak).
+    // No grant on an existing repository: 403 for reads and writes.
     let res = stranger_reg.req(Method::GET, "/v2/secret/app/manifests/v1").send().await.unwrap();
     assert_eq!(res.status(), 403);
     assert_eq!(res.json::<Value>().await.unwrap()["errors"][0]["code"], "DENIED");
-    assert_eq!(stranger_reg.status(Method::GET, "/v2/does/not-exist/tags/list").await, 403);
+    assert_eq!(stranger_reg.status(Method::POST, "/v2/secret/app/blobs/uploads/").await, 403);
     srv.assert_audit("stranger", "manifest.pull", Some("secret/app"), None, "denied").await;
-    // Admins see the truth.
+    // A missing repository reads as empty (404) so clients can check before
+    // their first push (docs/adr/0004).
+    assert_eq!(stranger_reg.status(Method::GET, "/v2/does/not-exist/tags/list").await, 404);
+    assert_eq!(stranger_reg.status(Method::HEAD, &format!("/v2/does/not-exist/blobs/{}", sha256(b"x"))).await, 404);
     let admin = srv.admin_registry().await;
     assert_eq!(admin.status(Method::GET, "/v2/does/not-exist/tags/list").await, 404);
     assert_eq!(admin.status(Method::GET, "/v2/secret/app/manifests/v1").await, 200);

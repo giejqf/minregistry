@@ -254,9 +254,18 @@ pub(super) async fn get(ctx: &Ctx, method: &Method, name: &str, reference: &str)
             tracing::error!(%digest, error = %e, "manifest is recorded in the database but unreadable from storage");
             AppError::from(e)
         })?;
-        ctx.record(ctx.event(action::MANIFEST_PULL).repository(name).reference(reference).digest(&digest)).await;
         Body::from_stream(stream)
     };
+    // HEAD is audited too: clients resolve a tag with HEAD and then GET the
+    // digest, so the HEAD is the only record of which tag was pulled.
+    ctx.record(
+        ctx.event(action::MANIFEST_PULL)
+            .repository(name)
+            .reference(reference)
+            .digest(&digest)
+            .detail("method", method.as_str()),
+    )
+    .await;
     let mut res = body.into_response();
     let h = res.headers_mut();
     h.insert(header::CONTENT_TYPE, HeaderValue::from_str(&head.media_type).map_err(AppError::internal)?);

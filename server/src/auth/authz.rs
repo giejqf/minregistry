@@ -53,14 +53,13 @@ pub(crate) fn required_level(action: Action) -> Level {
     }
 }
 
-/// Admins may do anything. A missing repository may only be pushed to (it is
-/// then created). Otherwise the principal's grant must cover the action.
+/// Admins may do anything. A missing repository may be pushed to (it is then
+/// created) and reads as empty, so the existence checks clients make before
+/// their first push get the spec's 404 (docs/adr/0004). Otherwise the
+/// principal's grant must cover the action.
 pub(crate) fn decide(is_admin: bool, repo_exists: bool, level: Option<Level>, action: Action) -> bool {
-    if is_admin {
+    if is_admin || !repo_exists {
         return true;
-    }
-    if !repo_exists {
-        return action == Action::Push;
     }
     level.is_some_and(|l| l >= required_level(action))
 }
@@ -78,8 +77,8 @@ impl From<sqlx::Error> for AuthzError {
 }
 
 /// Authorizes `action` on `repo_name`. On success returns the repository, or
-/// `None` when it does not exist and the caller may create it (push) or must
-/// report it unknown (admins).
+/// `None` when it does not exist: pushes create it, everything else reports
+/// it unknown (404).
 pub(crate) async fn authorize(
     state: &AppState,
     principal: &Principal,
@@ -130,10 +129,9 @@ mod tests {
     }
 
     #[test]
-    fn missing_repositories_are_only_pushable() {
-        assert!(decide(false, false, None, Push));
-        for action in [Pull, Delete, Mount] {
-            assert!(!decide(false, false, None, action));
+    fn missing_repositories_are_creatable_and_read_as_empty() {
+        for action in [Pull, Push, Delete, Mount] {
+            assert!(decide(false, false, None, action), "{action:?}");
         }
     }
 
