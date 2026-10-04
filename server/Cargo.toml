@@ -1,6 +1,6 @@
 [package]
 name = "minregistry"
-version = "1.0.1"
+version = "1.0.2"
 description = "MinRegistry: a self-hosted, single-tenant OCI container registry with a management UI"
 edition.workspace = true
 license.workspace = true

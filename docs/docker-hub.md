@@ -28,7 +28,7 @@ Source, issues and full documentation:
 
 | Tag | Meaning |
 |---|---|
-| `1.0.1`, `1.0`, `1`, `latest` | The current release. `1.0` follows 1.0.x patch releases, `1` follows every 1.x release. |
+| `1.0.2`, `1.0`, `1`, `latest` | The current release. `1.0` follows 1.0.x patch releases, `1` follows every 1.x release. |
 
 Every tag is a multi-platform image for `linux/amd64` and `linux/arm64`.
 
