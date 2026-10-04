@@ -61,6 +61,9 @@ pub(crate) trait Storage: Send + Sync {
     async fn delete_blob(&self, digest: &Digest) -> Result<()>;
     /// Every blob present in storage (for garbage collection).
     async fn list_blobs(&self) -> Result<BoxStream<'static, Result<Digest>>>;
+    /// Checks that the backend can serve requests: the root directory exists,
+    /// or the bucket exists and the credentials may list it (`/readyz`).
+    async fn check(&self) -> Result<()>;
     /// Human-readable backend description for the System page.
     fn describe(&self) -> StorageInfo;
 }

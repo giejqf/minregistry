@@ -108,6 +108,13 @@ impl Storage for FsStorage {
         Ok(rx.boxed())
     }
 
+    async fn check(&self) -> Result<()> {
+        if !tokio::fs::metadata(self.root.join("blobs")).await?.is_dir() {
+            return Err(StorageError::Backend("the blobs directory is not a directory".into()));
+        }
+        Ok(())
+    }
+
     fn describe(&self) -> StorageInfo {
         StorageInfo { backend: "fs", location: self.root.display().to_string() }
     }

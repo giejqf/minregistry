@@ -63,9 +63,19 @@ fn virtual_hosted_endpoint(endpoint: &str, bucket: &str) -> anyhow::Result<Strin
     Ok(url.as_str().trim_end_matches('/').to_string())
 }
 
+/// Errors of requests that address one blob: a 404 means the blob is missing.
 fn map_err(e: object_store::Error) -> StorageError {
     match e {
         object_store::Error::NotFound { .. } => StorageError::NotFound,
+        other => StorageError::Backend(other.to_string()),
+    }
+}
+
+/// Errors of writes and listings: S3 answers those with a 404 only when the
+/// bucket is missing (`NoSuchBucket`), never because of the blob.
+fn bucket_err(e: object_store::Error) -> StorageError {
+    match e {
+        object_store::Error::NotFound { .. } => StorageError::Backend(format!("the bucket does not exist: {e}")),
         other => StorageError::Backend(other.to_string()),
     }
 }
@@ -97,10 +107,10 @@ impl Storage for S3Storage {
         if size <= PART_SIZE as u64 {
             let mut buf = Vec::with_capacity(size as usize);
             file.read_to_end(&mut buf).await?;
-            self.store.put(&key, PutPayload::from(buf)).await.map_err(map_err)?;
+            self.store.put(&key, PutPayload::from(buf)).await.map_err(bucket_err)?;
             return Ok(());
         }
-        let upload = self.store.put_multipart(&key).await.map_err(map_err)?;
+        let upload = self.store.put_multipart(&key).await.map_err(bucket_err)?;
         let mut writer = WriteMultipart::new_with_chunk_size(upload, PART_SIZE);
         let copied: Result<()> = async {
             loop {
@@ -113,14 +123,14 @@ impl Storage for S3Storage {
                 if chunk.is_empty() {
                     return Ok(());
                 }
-                writer.wait_for_capacity(MAX_PARALLEL_PARTS).await.map_err(map_err)?;
+                writer.wait_for_capacity(MAX_PARALLEL_PARTS).await.map_err(bucket_err)?;
                 writer.put(chunk.freeze());
             }
         }
         .await;
         match copied {
             Ok(()) => {
-                writer.finish().await.map_err(map_err)?;
+                writer.finish().await.map_err(bucket_err)?;
                 Ok(())
             }
             Err(e) => {
@@ -145,10 +155,17 @@ impl Storage for S3Storage {
             .filter_map(|item| async move {
                 match item {
                     Ok(meta) => digest_from_key(meta.location.as_ref()).map(Ok),
-                    Err(e) => Some(Err(map_err(e))),
+                    Err(e) => Some(Err(bucket_err(e))),
                 }
             })
             .boxed())
+    }
+
+    async fn check(&self) -> Result<()> {
+        // Not a HEAD: S3 answers 404 to it for a missing object and a missing
+        // bucket alike, so a probe by HEAD passes without a bucket.
+        self.store.list_with_delimiter(Some(&ObjectPath::from("blobs"))).await.map_err(bucket_err)?;
+        Ok(())
     }
 
     fn describe(&self) -> StorageInfo {

@@ -28,7 +28,6 @@ use crate::{
     auth::{self, session::SqliteSessionStore},
     config::Config,
     db::Db,
-    digest::Digest,
     registry::{self, UploadManager},
     storage::{self, Storage},
     tasks, ui,
@@ -72,6 +71,10 @@ impl App {
         let db = Db::open(&cfg.core.db_path).await?;
         db.migrate().await?;
         let storage = storage::from_config(&cfg.core.storage).await?;
+        if let Err(e) = storage.check().await {
+            // Not fatal: the bucket may be created after the server starts.
+            tracing::warn!(error = %e, "storage is not ready; /readyz answers 503 until it is");
+        }
         let uploads = UploadManager::new(cfg.core.upload_dir.clone()).await?;
         let oauth_http = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
@@ -168,8 +171,7 @@ async fn healthz() -> &'static str {
 
 async fn readyz(State(state): State<AppState>) -> Response {
     let db = state.db.ping().await.map_err(|e| e.to_string());
-    let probe = Digest::of(b"minregistry readiness probe");
-    let storage = state.storage.blob_exists(&probe).await.map(|_| ()).map_err(|e| e.to_string());
+    let storage = state.storage.check().await.map_err(|e| e.to_string());
     let ok = db.is_ok() && storage.is_ok();
     let body = json!({
         "database": db.err().unwrap_or_else(|| "ok".into()),

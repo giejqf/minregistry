@@ -35,6 +35,7 @@ async fn contract(storage: &dyn Storage) {
     let small = random_bytes(300 * 1024 + 7);
     let (digest, staged) = stage(scratch.path(), &small).await;
 
+    storage.check().await.expect("the backend is ready");
     assert!(!storage.blob_exists(&digest).await.unwrap());
     assert_eq!(storage.blob_size(&digest).await.unwrap(), None);
     assert!(matches!(storage.get_blob(&digest, None).await, Err(StorageError::NotFound)));
@@ -91,24 +92,53 @@ async fn fs_backend() {
         storage.get_blob(&Digest::of(b"missing"), Some(Range { start: 0, end: 1 })).await,
         Err(StorageError::NotFound)
     ));
+
+    tokio::fs::remove_dir_all(root.path().join("blobs")).await.unwrap();
+    assert!(storage.check().await.is_err(), "a missing blobs directory is not ready");
 }
 
-#[tokio::test]
-async fn s3_backend() {
+/// The MinIO test configuration, or `None` to skip.
+fn s3_test_config() -> Option<S3Config> {
     let Ok(endpoint) = std::env::var("MINREGISTRY_TEST_S3_ENDPOINT") else {
         eprintln!("skipping: MINREGISTRY_TEST_S3_ENDPOINT is not set");
-        return;
+        return None;
     };
     let _ = rustls::crypto::ring::default_provider().install_default();
     let env = |k: &str, default: &str| std::env::var(k).unwrap_or_else(|_| default.to_string());
-    let cfg = S3Config {
+    Some(S3Config {
         endpoint: Some(endpoint),
         region: env("MINREGISTRY_TEST_S3_REGION", "us-east-1"),
         bucket: env("MINREGISTRY_TEST_S3_BUCKET", "minregistry-test"),
         access_key: Some(env("MINREGISTRY_TEST_S3_ACCESS_KEY", "minioadmin")),
         secret_key: Some(env("MINREGISTRY_TEST_S3_SECRET_KEY", "minioadmin")),
         path_style: true,
-    };
+    })
+}
+
+#[tokio::test]
+async fn s3_backend() {
+    let Some(cfg) = s3_test_config() else { return };
     let storage = S3Storage::new(&cfg).unwrap();
     contract(&storage).await;
+}
+
+/// S3 answers a HEAD with 404 for a missing object and a missing bucket
+/// alike. A missing bucket must still fail the readiness check, and writing
+/// to it is a backend error, not "blob not found".
+#[tokio::test]
+async fn s3_missing_bucket() {
+    let Some(cfg) = s3_test_config() else { return };
+    let bucket = format!("minregistry-missing-{}", uuid::Uuid::new_v4().simple());
+    let storage = S3Storage::new(&S3Config { bucket, ..cfg }).unwrap();
+    let digest = Digest::of(b"missing bucket");
+    assert!(!storage.blob_exists(&digest).await.unwrap());
+
+    let err = storage.check().await.expect_err("a missing bucket is not ready");
+    assert!(matches!(err, StorageError::Backend(_)), "{err}");
+    let scratch = tempfile::tempdir().unwrap();
+    let (digest, staged) = stage(scratch.path(), b"missing bucket").await;
+    let err = storage.put_blob_from_file(&digest, &staged).await.expect_err("no bucket to write to");
+    assert!(matches!(err, StorageError::Backend(_)), "{err}");
+    let listed: std::result::Result<Vec<Digest>, _> = storage.list_blobs().await.unwrap().try_collect().await;
+    assert!(matches!(listed, Err(StorageError::Backend(_))));
 }

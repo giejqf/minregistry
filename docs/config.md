@@ -39,7 +39,7 @@ Durations use [humantime](https://docs.rs/humantime) syntax: `30s`, `15m`,
 | `MINREGISTRY_FS_ROOT` | `./data/blobs` | `fs` only: root directory. Blobs live at `blobs/sha256/<xx>/<hex>/data`; `.tmp/` holds files being moved into place. |
 | `MINREGISTRY_S3_ENDPOINT` | AWS | `s3` only: endpoint URL for non-AWS stores, e.g. `http://minio:9000`, `https://<account>.r2.cloudflarestorage.com`. `http://` endpoints are allowed. |
 | `MINREGISTRY_S3_REGION` | `us-east-1` | `s3` only: region. |
-| `MINREGISTRY_S3_BUCKET` | required for `s3` | `s3` only: bucket (must exist). Keys use the same `blobs/sha256/<xx>/<hex>/data` layout as `fs`. |
+| `MINREGISTRY_S3_BUCKET` | required for `s3` | `s3` only: bucket (must exist; `/readyz` answers 503 while it does not). Keys use the same `blobs/sha256/<xx>/<hex>/data` layout as `fs`. |
 | `MINREGISTRY_S3_ACCESS_KEY` | unset | `s3` only: access key id. Set together with the secret key; when both are unset the standard `AWS_*` variables / instance credentials are used. |
 | `MINREGISTRY_S3_SECRET_KEY` | unset | `s3` only: secret access key (never logged). |
 | `MINREGISTRY_S3_PATH_STYLE` | `false` | `s3` only: `true` for path-style requests (`<endpoint>/<bucket>/<key>`, needed by MinIO and most self-hosted stores); `false` for virtual-hosted style (`<bucket>.<endpoint host>`). |
