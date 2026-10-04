@@ -1,0 +1,1996 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MinRegistry management API",
+    "description": "Management API of MinRegistry. All endpoints except this document require an admin session (GitHub OAuth); mutating requests must send `X-Requested-With: XMLHttpRequest`.",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/audit": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Audit events, newest first, with filters and cursor pagination.",
+        "operationId": "list_audit_events",
+        "parameters": [
+          {
+            "name": "principal",
+            "in": "query",
+            "description": "Exact principal name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "repository",
+            "in": "query",
+            "description": "Exact repository name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Exact action, e.g. `manifest.push`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/AuditOutcome"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Inclusive lower bound (RFC 3339).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Exclusive upper bound (RFC 3339).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "`next_cursor` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size (default 50, max 500).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audit/actions": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Every action name the audit log can contain.",
+        "operationId": "list_audit_actions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditActionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gc": {
+      "post": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Runs garbage collection now (use `dry_run` first).",
+        "operationId": "run_gc",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GcRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GcResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "session"
+        ],
+        "summary": "The signed-in admin.",
+        "operationId": "get_me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/principals": {
+      "get": {
+        "tags": [
+          "principals"
+        ],
+        "summary": "GitHub admins (from configuration) and all principals.",
+        "operationId": "list_principals",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "principals"
+        ],
+        "summary": "Creates a token-only identity (no web login).",
+        "operationId": "create_identity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIdentityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Name already taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/principals/{id}": {
+      "get": {
+        "tags": [
+          "principals"
+        ],
+        "summary": "A principal with its tokens and repository grants.",
+        "operationId": "get_principal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Principal id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "principals"
+        ],
+        "summary": "Enables/disables an identity or renames its display name.",
+        "operationId": "update_principal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Principal id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePrincipalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "GitHub admins are managed through configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/principals/{id}/tokens": {
+      "get": {
+        "tags": [
+          "principals"
+        ],
+        "summary": "Tokens of a principal (secrets are never returned).",
+        "operationId": "list_tokens",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Principal id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TokenSummary"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "principals"
+        ],
+        "summary": "Issues a token. The secret is returned once. Admins may mint tokens for\nidentities and for their own GitHub principal only.",
+        "operationId": "create_token",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Principal id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Another admin's GitHub principal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/principals/{id}/tokens/{token_id}": {
+      "delete": {
+        "tags": [
+          "principals"
+        ],
+        "summary": "Revokes a token immediately.",
+        "operationId": "revoke_token",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Principal id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_id",
+            "in": "path",
+            "description": "Token id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/repositories": {
+      "get": {
+        "tags": [
+          "repositories"
+        ],
+        "summary": "Repositories, alphabetically, with a substring filter.",
+        "operationId": "list_repositories",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Substring filter on the repository name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size (default 50, max 500).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/repositories/{id}": {
+      "get": {
+        "tags": [
+          "repositories"
+        ],
+        "summary": "A repository with its tags and manifests (including referrers).",
+        "operationId": "get_repository",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Repository id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "repositories"
+        ],
+        "summary": "Deletes a repository: tags, manifests, grants and uploads go; blobs are\nreclaimed by the next garbage collection.",
+        "operationId": "delete_repository",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Repository id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/repositories/{id}/manifests/{digest}": {
+      "delete": {
+        "tags": [
+          "repositories"
+        ],
+        "summary": "Deletes a manifest and every tag pointing at it.",
+        "operationId": "delete_repository_manifest",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Repository id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "digest",
+            "in": "path",
+            "description": "Manifest digest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/repositories/{id}/permissions": {
+      "get": {
+        "tags": [
+          "permissions"
+        ],
+        "summary": "Who may access a repository.",
+        "operationId": "list_repository_permissions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Repository id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepositoryPermissionSummary"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/repositories/{id}/permissions/{principal_id}": {
+      "put": {
+        "tags": [
+          "permissions"
+        ],
+        "summary": "Grants (or changes) a principal's level on a repository.",
+        "operationId": "grant_permission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Repository id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "principal_id",
+            "in": "path",
+            "description": "Principal id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantPermissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryPermissionSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "permissions"
+        ],
+        "summary": "Removes a principal's grant on a repository.",
+        "operationId": "revoke_permission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Repository id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "principal_id",
+            "in": "path",
+            "description": "Principal id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/repositories/{id}/tags/{tag}": {
+      "delete": {
+        "tags": [
+          "repositories"
+        ],
+        "summary": "Removes a tag (the manifest stays).",
+        "operationId": "delete_repository_tag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Repository id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "path",
+            "description": "Tag name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/system": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Storage backend, database size and registry totals.",
+        "operationId": "get_system",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/uploads": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Upload sessions in flight.",
+        "operationId": "list_uploads",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UploadSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuditActionsResponse": {
+        "type": "object",
+        "required": [
+          "actions"
+        ],
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AuditEventSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "ts",
+          "action",
+          "outcome",
+          "detail"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "principal_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "principal_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": "string"
+          },
+          "repository": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "digest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "client_ip": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_agent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/AuditOutcome"
+          },
+          "detail": {
+            "type": "object"
+          }
+        }
+      },
+      "AuditListResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEventSummary"
+            },
+            "description": "Newest first."
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass as `cursor` to get the next (older) page; absent on the last page."
+          }
+        }
+      },
+      "AuditOutcome": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "denied",
+          "error"
+        ]
+      },
+      "CreateIdentityRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Lower-case letters, digits, `.`, `_`, `-`; used as the `docker login` username."
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CreateTokenRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional RFC 3339 expiry; tokens never expire by default."
+          }
+        }
+      },
+      "CreateTokenResponse": {
+        "type": "object",
+        "required": [
+          "token",
+          "secret",
+          "username"
+        ],
+        "properties": {
+          "token": {
+            "$ref": "#/components/schemas/TokenSummary"
+          },
+          "secret": {
+            "type": "string",
+            "description": "The secret. Shown only in this response; it cannot be retrieved later."
+          },
+          "username": {
+            "type": "string",
+            "description": "Username to pair with the secret (`docker login -u`)."
+          }
+        }
+      },
+      "DatabaseSummary": {
+        "type": "object",
+        "required": [
+          "path",
+          "size_bytes"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ErrorDetail": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Machine-readable code, e.g. `not_found`, `unauthenticated`, `csrf`."
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        }
+      },
+      "GcRequest": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "description": "Report what would be deleted without deleting anything."
+          },
+          "delete_untagged": {
+            "type": "boolean",
+            "description": "Also delete manifests that no tag reaches (directly, via an index or as a referrer)."
+          },
+          "min_age_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Keep content younger than this (default `MINREGISTRY_GC_MIN_AGE`)."
+          }
+        }
+      },
+      "GcResponse": {
+        "type": "object",
+        "required": [
+          "dry_run",
+          "delete_untagged",
+          "min_age_seconds",
+          "manifests_deleted",
+          "blobs_deleted",
+          "bytes_freed",
+          "orphans_deleted",
+          "blobs_kept_young",
+          "errors",
+          "duration_ms"
+        ],
+        "properties": {
+          "dry_run": {
+            "type": "boolean"
+          },
+          "delete_untagged": {
+            "type": "boolean"
+          },
+          "min_age_seconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "manifests_deleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "blobs_deleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "bytes_freed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "orphans_deleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "blobs_kept_young": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "GrantPermissionRequest": {
+        "type": "object",
+        "required": [
+          "level"
+        ],
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/PermissionLevel"
+          }
+        }
+      },
+      "ManifestSummary": {
+        "type": "object",
+        "required": [
+          "digest",
+          "media_type",
+          "size",
+          "platforms",
+          "annotations",
+          "tags",
+          "created_at"
+        ],
+        "properties": {
+          "digest": {
+            "type": "string"
+          },
+          "media_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "artifact_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subject_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Set for referrers (signatures, SBOMs, …): the manifest they refer to."
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformSummary"
+            }
+          },
+          "annotations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "pushed_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "MeResponse": {
+        "type": "object",
+        "required": [
+          "principal"
+        ],
+        "properties": {
+          "principal": {
+            "$ref": "#/components/schemas/PrincipalSummary"
+          }
+        }
+      },
+      "PermissionLevel": {
+        "type": "string",
+        "enum": [
+          "read",
+          "write",
+          "owner"
+        ]
+      },
+      "PlatformSummary": {
+        "type": "object",
+        "required": [
+          "os",
+          "architecture"
+        ],
+        "properties": {
+          "os": {
+            "type": "string"
+          },
+          "architecture": {
+            "type": "string"
+          },
+          "variant": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "PrincipalDetail": {
+        "type": "object",
+        "required": [
+          "principal",
+          "tokens",
+          "permissions"
+        ],
+        "properties": {
+          "principal": {
+            "$ref": "#/components/schemas/PrincipalSummary"
+          },
+          "tokens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenSummary"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrincipalPermissionSummary"
+            }
+          }
+        }
+      },
+      "PrincipalKind": {
+        "type": "string",
+        "enum": [
+          "github",
+          "identity"
+        ]
+      },
+      "PrincipalListResponse": {
+        "type": "object",
+        "required": [
+          "admin_logins",
+          "principals"
+        ],
+        "properties": {
+          "admin_logins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "GitHub logins allowed to sign in (from configuration, read-only)."
+          },
+          "principals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrincipalSummary"
+            }
+          }
+        }
+      },
+      "PrincipalPermissionSummary": {
+        "type": "object",
+        "required": [
+          "repository",
+          "level",
+          "granted_at"
+        ],
+        "properties": {
+          "repository": {
+            "$ref": "#/components/schemas/RepositoryRefSummary"
+          },
+          "level": {
+            "$ref": "#/components/schemas/PermissionLevel"
+          },
+          "granted_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "granted_at": {
+            "type": "string"
+          }
+        }
+      },
+      "PrincipalRefSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PrincipalKind"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "PrincipalSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "display_name",
+          "enabled",
+          "is_admin",
+          "active",
+          "active_token_count",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PrincipalKind"
+          },
+          "name": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "description": "GitHub principal currently listed in `MINREGISTRY_ADMIN_GITHUB_LOGINS`."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the principal can authenticate right now."
+          },
+          "active_token_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        }
+      },
+      "RepositoryDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "tags",
+          "manifests"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSummary"
+            }
+          },
+          "manifests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManifestSummary"
+            }
+          }
+        }
+      },
+      "RepositoryListResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepositorySummary"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "RepositoryPermissionSummary": {
+        "type": "object",
+        "required": [
+          "principal",
+          "level",
+          "granted_at"
+        ],
+        "properties": {
+          "principal": {
+            "$ref": "#/components/schemas/PrincipalRefSummary"
+          },
+          "level": {
+            "$ref": "#/components/schemas/PermissionLevel"
+          },
+          "granted_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "granted_at": {
+            "type": "string"
+          }
+        }
+      },
+      "RepositoryRefSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "RepositorySummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "tag_count",
+          "manifest_count"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tag_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "manifest_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_push_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "StorageSummary": {
+        "type": "object",
+        "required": [
+          "backend",
+          "location"
+        ],
+        "properties": {
+          "backend": {
+            "type": "string",
+            "description": "`fs` or `s3`."
+          },
+          "location": {
+            "type": "string"
+          }
+        }
+      },
+      "SystemResponse": {
+        "type": "object",
+        "required": [
+          "version",
+          "started_at",
+          "storage",
+          "database",
+          "upload_dir",
+          "upload_ttl_seconds",
+          "uploads_in_flight",
+          "repository_count",
+          "manifest_count",
+          "blob_count",
+          "blob_bytes",
+          "gc_min_age_seconds",
+          "audit_retention_days",
+          "audit_blob_reads"
+        ],
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageSummary"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DatabaseSummary"
+          },
+          "upload_dir": {
+            "type": "string"
+          },
+          "upload_ttl_seconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uploads_in_flight": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "repository_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "manifest_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "blob_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "blob_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "gc_cron": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gc_min_age_seconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "audit_retention_days": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "audit_blob_reads": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TagSummary": {
+        "type": "object",
+        "required": [
+          "name",
+          "digest",
+          "updated_at"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "updated_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "TokenStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "expired",
+          "revoked"
+        ]
+      },
+      "TokenSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "First characters of the secret, to recognize it."
+          },
+          "status": {
+            "$ref": "#/components/schemas/TokenStatus"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revoked_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_used_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UpdatePrincipalRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UploadSummary": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "repository",
+          "principal",
+          "offset",
+          "started_at",
+          "last_activity_at"
+        ],
+        "properties": {
+          "uuid": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "principal": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Bytes received so far."
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "last_activity_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "minregistry_session"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "session",
+      "description": "The signed-in admin"
+    },
+    {
+      "name": "repositories",
+      "description": "Repositories, tags and manifests"
+    },
+    {
+      "name": "permissions",
+      "description": "Per-repository access grants"
+    },
+    {
+      "name": "principals",
+      "description": "GitHub admins, identities and their tokens"
+    },
+    {
+      "name": "audit",
+      "description": "Audit log"
+    },
+    {
+      "name": "system",
+      "description": "Storage, uploads and garbage collection"
+    }
+  ]
+}

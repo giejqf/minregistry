@@ -233,21 +233,21 @@ pub(crate) async fn delete_repository_manifest(
     path = "/repositories/{id}/permissions",
     tag = "permissions",
     params(("id" = String, Path, description = "Repository id")),
-    responses((status = 200, body = Vec<RepositoryPermission>), (status = 404, body = ErrorResponse)),
+    responses((status = 200, body = Vec<RepositoryPermissionSummary>), (status = 404, body = ErrorResponse)),
     security(("session" = []))
 )]
 pub(crate) async fn list_repository_permissions(
     State(state): State<AppState>,
     _admin: AdminSession,
     Path(id): Path<String>,
-) -> AppResult<Json<Vec<RepositoryPermission>>> {
+) -> AppResult<Json<Vec<RepositoryPermissionSummary>>> {
     let repo = load(&state, &id).await?;
     Ok(Json(
         db::permissions::for_repository(&state.db.read, repo.id)
             .await?
             .into_iter()
-            .map(|p| RepositoryPermission {
-                principal: PrincipalRef {
+            .map(|p| RepositoryPermissionSummary {
+                principal: PrincipalRefSummary {
                     id: p.principal_id.to_string(),
                     kind: if p.principal_kind == db::principals::KIND_GITHUB {
                         PrincipalKind::Github
@@ -271,7 +271,7 @@ pub(crate) async fn list_repository_permissions(
     tag = "permissions",
     params(("id" = String, Path, description = "Repository id"), ("principal_id" = String, Path, description = "Principal id")),
     request_body = GrantPermissionRequest,
-    responses((status = 200, body = RepositoryPermission), (status = 404, body = ErrorResponse)),
+    responses((status = 200, body = RepositoryPermissionSummary), (status = 404, body = ErrorResponse)),
     security(("session" = []))
 )]
 pub(crate) async fn grant_permission(
@@ -280,7 +280,7 @@ pub(crate) async fn grant_permission(
     client: ClientInfo,
     Path((id, principal_id)): Path<(String, String)>,
     Json(req): Json<GrantPermissionRequest>,
-) -> AppResult<Json<RepositoryPermission>> {
+) -> AppResult<Json<RepositoryPermissionSummary>> {
     let repo = load(&state, &id).await?;
     let principal = db::principals::by_id(&state.db.read, parse_id(&principal_id, "principal")?)
         .await?
@@ -301,8 +301,8 @@ pub(crate) async fn grant_permission(
                 .detail("level", level),
         )
         .await;
-    Ok(Json(RepositoryPermission {
-        principal: PrincipalRef { id: principal.id.to_string(), kind: kind(&principal), name: principal.name },
+    Ok(Json(RepositoryPermissionSummary {
+        principal: PrincipalRefSummary { id: principal.id.to_string(), kind: kind(&principal), name: principal.name },
         level: req.level,
         granted_by: Some(admin.principal.name.clone()),
         granted_at: now,

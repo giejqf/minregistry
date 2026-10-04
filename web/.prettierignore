@@ -1,0 +1,8 @@
+# Generated: the SDK (pnpm gen:sdk), the OpenAPI document (backend) and shadcn/ui components.
+src/sdk/
+openapi.json
+src/components/ui/
+dist/
+coverage/
+node_modules/
+pnpm-lock.yaml

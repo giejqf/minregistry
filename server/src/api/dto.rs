@@ -43,7 +43,7 @@ pub(crate) struct PrincipalSummary {
 }
 
 #[derive(Serialize, ToSchema)]
-pub(crate) struct PrincipalRef {
+pub(crate) struct PrincipalRefSummary {
     pub id: String,
     pub kind: PrincipalKind,
     pub name: String,
@@ -60,7 +60,7 @@ pub(crate) struct PrincipalListResponse {
 pub(crate) struct PrincipalDetail {
     pub principal: PrincipalSummary,
     pub tokens: Vec<TokenSummary>,
-    pub permissions: Vec<PrincipalPermission>,
+    pub permissions: Vec<PrincipalPermissionSummary>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -144,7 +144,7 @@ pub(crate) struct RepositoryListResponse {
 }
 
 #[derive(Serialize, ToSchema)]
-pub(crate) struct RepositoryRef {
+pub(crate) struct RepositoryRefSummary {
     pub id: String,
     pub name: String,
 }
@@ -200,16 +200,16 @@ pub(crate) enum PermissionLevel {
 }
 
 #[derive(Serialize, ToSchema)]
-pub(crate) struct RepositoryPermission {
-    pub principal: PrincipalRef,
+pub(crate) struct RepositoryPermissionSummary {
+    pub principal: PrincipalRefSummary,
     pub level: PermissionLevel,
     pub granted_by: Option<String>,
     pub granted_at: String,
 }
 
 #[derive(Serialize, ToSchema)]
-pub(crate) struct PrincipalPermission {
-    pub repository: RepositoryRef,
+pub(crate) struct PrincipalPermissionSummary {
+    pub repository: RepositoryRefSummary,
     pub level: PermissionLevel,
     pub granted_by: Option<String>,
     pub granted_at: String,

@@ -192,8 +192,8 @@ pub(crate) async fn get_principal(
     let permissions = db::permissions::for_principal(&state.db.read, row.id)
         .await?
         .into_iter()
-        .map(|p| PrincipalPermission {
-            repository: RepositoryRef { id: p.repository_id.to_string(), name: p.repository_name },
+        .map(|p| PrincipalPermissionSummary {
+            repository: RepositoryRefSummary { id: p.repository_id.to_string(), name: p.repository_name },
             level: level_dto(&p.level),
             granted_by: p.granted_by,
             granted_at: p.granted_at,
