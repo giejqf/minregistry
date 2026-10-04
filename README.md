@@ -22,10 +22,10 @@ management UI, shipped as one binary.
 
 1. Create a GitHub OAuth App with the callback URL
    `https://registry.example.com/auth/github/callback`.
-2. Run the image behind a TLS-terminating reverse proxy:
+2. Run the image (multi-platform: `linux/amd64`, `linux/arm64`) behind a
+   TLS-terminating reverse proxy:
 
 ```sh
-docker build -t minregistry .
 docker run -d --name minregistry -p 5000:5000 -v minregistry-data:/data \
   -e MINREGISTRY_PUBLIC_URL=https://registry.example.com \
   -e MINREGISTRY_TRUST_PROXY=true \
@@ -33,8 +33,10 @@ docker run -d --name minregistry -p 5000:5000 -v minregistry-data:/data \
   -e MINREGISTRY_GITHUB_CLIENT_SECRET=... \
   -e MINREGISTRY_ADMIN_GITHUB_LOGINS=your-github-login \
   -e MINREGISTRY_SESSION_SECRET="$(openssl rand -base64 48)" \
-  minregistry
+  giejqf/minregistry:1
 ```
+
+   To build it yourself instead: `docker build -t minregistry .`
 
 3. Open `https://registry.example.com`, sign in with GitHub, go to
    *Principals*, and create a token for yourself (or an identity for CI). The
@@ -73,6 +75,19 @@ just openapi                              # regenerate web/openapi.json and web/
 pnpm --dir web install && pnpm --dir web dev   # UI on :5173, proxying to :5000
 ./e2e/run.sh                              # real clients + OCI conformance (needs Docker)
 ```
+
+### Releasing
+
+1. Bump `version` in `server/Cargo.toml` and `web/package.json`, then run
+   `just openapi` (the version is part of `web/openapi.json`) and commit
+   `chore(release): X.Y.Z`.
+2. Tag and push: `git tag -a vX.Y.Z -m "MinRegistry X.Y.Z" && git push origin main vX.Y.Z`.
+3. `.github/workflows/release.yml` builds `linux/amd64` and `linux/arm64`
+   natively and publishes `giejqf/minregistry` as `X.Y.Z`, `X.Y`, `X` and
+   `latest`. It needs the repository secrets `DOCKERHUB_USERNAME` and
+   `DOCKERHUB_TOKEN`; the image name can be overridden with the repository
+   variable `DOCKERHUB_IMAGE`. Run it by hand (`gh workflow run release -f tag=vX.Y.Z`)
+   to republish an existing tag.
 
 ## License
 
