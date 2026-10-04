@@ -11,6 +11,8 @@
 #   MINREGISTRY_STORAGE  fs (default) | s3
 #   E2E_REGISTRY         compose (default: build the image) | host (run
 #                        MINREGISTRY_BIN, default target/release/minregistry)
+#   E2E_BUILD=0          use an existing minregistry:e2e image instead of
+#                        building it (CI builds it with layer caching)
 #   E2E_KEEP=1           leave the stack running afterwards
 #
 # Needs a Docker daemon (with buildx) and ports 5000, 5555 (and 9000/9001 for
@@ -54,7 +56,9 @@ for port in 5000 5555 $([[ "$MINREGISTRY_STORAGE" == s3 ]] && echo 9000 9001); d
 done
 
 log "starting the stack (storage: $MINREGISTRY_STORAGE, registry: $E2E_REGISTRY)"
-compose up -d --build --wait >"$E2E_WORK/compose-up.log" 2>&1 || {
+build=(--build)
+[[ "${E2E_BUILD:-1}" == 0 ]] && build=()
+compose up -d "${build[@]}" --wait >"$E2E_WORK/compose-up.log" 2>&1 || {
   cat "$E2E_WORK/compose-up.log" >&2
   fail "docker compose up failed"
 }

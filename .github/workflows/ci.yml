@@ -1,0 +1,141 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: "true"
+  MINIO_IMAGE: bitnamilegacy/minio:2025.7.23-debian-12-r5
+
+jobs:
+  rust:
+    name: Rust (fmt, clippy, test, licenses)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Start MinIO for the S3 storage contract tests
+        run: |
+          docker run -d --name minio -p 127.0.0.1:9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
+            -e MINIO_DEFAULT_BUCKETS=minregistry-test "$MINIO_IMAGE"
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:9000/minio/health/ready && exit 0; sleep 1; done
+          docker logs minio; exit 1
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+        env:
+          MINREGISTRY_TEST_S3_ENDPOINT: http://127.0.0.1:9000
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check licenses
+
+  web:
+    name: Web (lint, typecheck, test, build)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm --dir web install --frozen-lockfile
+      - run: pnpm --dir web lint
+      - run: pnpm --dir web typecheck
+      - run: pnpm --dir web test
+      - run: pnpm --dir web build
+
+  generated:
+    name: Generated files are up to date
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: openapi.json matches the backend
+        run: |
+          cargo run -q -p minregistry -- openapi > web/openapi.json
+          git diff --exit-code -- web/openapi.json
+      - name: The SDK matches openapi.json
+        run: |
+          pnpm --dir web install --frozen-lockfile
+          pnpm --dir web gen:sdk
+          git diff --exit-code -- web/src/sdk
+          test -z "$(git status --porcelain -- web/src/sdk)"
+      - name: .sqlx matches the queries and migrations
+        run: |
+          cargo install sqlx-cli --version 0.9.0 --no-default-features --features sqlite --locked
+          export DATABASE_URL="sqlite://$PWD/target/sqlx-check.db"
+          cargo sqlx database create
+          cargo sqlx migrate run --source server/migrations
+          SQLX_OFFLINE=false cargo sqlx prepare --workspace --check -- --all-targets
+
+  e2e:
+    name: E2E (${{ matrix.storage }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        storage: [fs, s3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: minregistry:e2e
+          cache-from: type=gha,scope=minregistry
+          cache-to: type=gha,scope=minregistry,mode=max
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+      - name: Install registry clients
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq skopeo
+          curl -sSfL https://github.com/google/go-containerregistry/releases/download/v0.22.1/go-containerregistry_Linux_x86_64.tar.gz \
+            | sudo tar xz -C /usr/local/bin crane
+          curl -sSfL https://github.com/oras-project/oras/releases/download/v1.3.4/oras_1.3.4_linux_amd64.tar.gz \
+            | sudo tar xz -C /usr/local/bin oras
+          docker version --format 'docker {{.Server.Version}}'; docker buildx version; crane version; oras version | head -1; skopeo --version
+      - name: Real clients + OCI conformance
+        run: ./e2e/run.sh
+        env:
+          MINREGISTRY_STORAGE: ${{ matrix.storage }}
+          E2E_BUILD: "0"
+      - name: Upload reports and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ matrix.storage }}
+          path: |
+            e2e/.work/conformance/
+            e2e/.work/*.log
+          if-no-files-found: ignore

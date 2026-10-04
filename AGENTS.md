@@ -447,12 +447,15 @@ Docker clients talk to `localhost:5000` as an insecure registry in CI
 | `MINREGISTRY_UPLOAD_DIR` | `./data/uploads` | staging for in-flight uploads |
 | `MINREGISTRY_UPLOAD_TTL` | `24h` | |
 | `MINREGISTRY_GITHUB_CLIENT_ID`, `_CLIENT_SECRET` | required | |
+| `MINREGISTRY_GITHUB_URL`, `_API_URL` | `https://github.com`, `https://api.github.com` | GitHub Enterprise; the e2e fake GitHub |
 | `MINREGISTRY_ADMIN_GITHUB_LOGINS` | required | comma-separated GitHub logins |
 | `MINREGISTRY_SESSION_SECRET` | required | ≥ 32 bytes, base64 |
 | `MINREGISTRY_AUDIT_BLOB_READS` | `false` | audit individual blob GETs |
 | `MINREGISTRY_AUDIT_RETENTION_DAYS` | `0` | 0 = keep forever |
 | `MINREGISTRY_GC_CRON` | unset | cron expr; unset = manual only |
+| `MINREGISTRY_GC_MIN_AGE` | `1h` | GC never collects content younger than this (in-flight pushes) |
 | `MINREGISTRY_LOG` | `info` | `tracing` filter |
+| `MINREGISTRY_LOG_FORMAT` | `auto` | `json` \| `pretty` \| `auto` (pretty on a terminal) |
 
 ---
 
