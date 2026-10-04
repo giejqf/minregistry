@@ -5,7 +5,10 @@ use std::{
     future::Future,
     net::SocketAddr,
     ops::Deref,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     time::Instant,
 };
 
@@ -46,6 +49,16 @@ pub(crate) struct StateInner {
     /// One garbage collection at a time per process.
     pub gc_lock: tokio::sync::Mutex<()>,
     pub started_at: String,
+    pub readiness: Readiness,
+}
+
+/// The last outcome of each readiness check. `/readyz` needs no credentials,
+/// so it only says which dependency is unavailable. The error, which can name
+/// the S3 endpoint and bucket, goes to the log once when the dependency fails,
+/// followed by one line when it recovers.
+pub(crate) struct Readiness {
+    database: AtomicBool,
+    storage: AtomicBool,
 }
 
 #[derive(Clone)]
@@ -71,10 +84,8 @@ impl App {
         let db = Db::open(&cfg.core.db_path).await?;
         db.migrate().await?;
         let storage = storage::from_config(&cfg.core.storage).await?;
-        if let Err(e) = storage.check().await {
-            // Not fatal: the bucket may be created after the server starts.
-            tracing::warn!(error = %e, "storage is not ready; /readyz answers 503 until it is");
-        }
+        // Not fatal: the bucket may be created after the server starts.
+        let storage_ready = observe(&AtomicBool::new(true), "storage", storage.check().await) == "ok";
         let uploads = UploadManager::new(cfg.core.upload_dir.clone()).await?;
         let oauth_http = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
@@ -91,6 +102,7 @@ impl App {
             token_touches: Mutex::new(HashMap::new()),
             gc_lock: tokio::sync::Mutex::new(()),
             started_at: crate::time::now(),
+            readiness: Readiness { database: AtomicBool::new(true), storage: AtomicBool::new(storage_ready) },
         }));
         let router = router(state.clone());
         Ok(App { state, router })
@@ -171,13 +183,30 @@ async fn healthz() -> &'static str {
 }
 
 async fn readyz(State(state): State<AppState>) -> Response {
-    let db = state.db.ping().await.map_err(|e| e.to_string());
-    let storage = state.storage.check().await.map_err(|e| e.to_string());
-    let ok = db.is_ok() && storage.is_ok();
-    let body = json!({
-        "database": db.err().unwrap_or_else(|| "ok".into()),
-        "storage": storage.err().unwrap_or_else(|| "ok".into()),
-    });
-    let status = if ok { StatusCode::OK } else { StatusCode::SERVICE_UNAVAILABLE };
-    (status, Json(body)).into_response()
+    let readiness = &state.readiness;
+    let database = observe(&readiness.database, "database", state.db.ping().await);
+    let storage = observe(&readiness.storage, "storage", state.storage.check().await);
+    let status = if database == "ok" && storage == "ok" { StatusCode::OK } else { StatusCode::SERVICE_UNAVAILABLE };
+    (status, Json(json!({ "database": database, "storage": storage }))).into_response()
+}
+
+/// Records the outcome of a readiness check, logging changes; returns what
+/// `/readyz` reports for it.
+fn observe<E: std::fmt::Display>(
+    was_ready: &AtomicBool,
+    dependency: &'static str,
+    result: Result<(), E>,
+) -> &'static str {
+    let ready = result.is_ok();
+    if was_ready.swap(ready, Ordering::Relaxed) != ready {
+        match result {
+            Ok(()) => tracing::info!(dependency, "ready again"),
+            Err(error) => tracing::warn!(dependency, %error, "not ready; /readyz answers 503 until it is"),
+        }
+    }
+    if ready {
+        "ok"
+    } else {
+        "unavailable"
+    }
 }

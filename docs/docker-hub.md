@@ -167,7 +167,7 @@ All variables, including S3, upload, GitHub Enterprise and logging settings:
 
 - **Port** `5000`: the registry API (`/v2/`), the management API (`/api/v1/`)
   and the web UI. Health probes: `/healthz` (process) and `/readyz` (database
-  and storage).
+  and storage; when it answers 503, the log says why).
 - **Volume** `/data`: the SQLite database, blobs (with `fs` storage) and
   upload staging. Back it up: stop the container while copying, or take a
   consistent copy of `minregistry.db` with SQLite's `.backup` command from the

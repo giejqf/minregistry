@@ -284,3 +284,22 @@ async fn garbage_collection() {
     // keep: manifest, config and layer; the re-pushed dangling blob went with the last run.
     assert_eq!(system["blob_count"], 3);
 }
+
+/// `/readyz` needs no credentials: it says which dependency is unavailable,
+/// never why (an S3 error names the endpoint and the bucket).
+#[tokio::test]
+async fn readiness_does_not_disclose_errors() {
+    let srv = TestServer::start().await;
+    let readyz = || async {
+        let res = reqwest::get(format!("{}/readyz", srv.url)).await.unwrap();
+        (res.status().as_u16(), res.json::<Value>().await.unwrap())
+    };
+    assert_eq!(readyz().await, (200, json!({ "database": "ok", "storage": "ok" })));
+
+    let blobs = srv.dir.path().join("blobs/blobs");
+    std::fs::remove_dir_all(&blobs).unwrap();
+    assert_eq!(readyz().await, (503, json!({ "database": "ok", "storage": "unavailable" })));
+
+    std::fs::create_dir_all(&blobs).unwrap();
+    assert_eq!(readyz().await, (200, json!({ "database": "ok", "storage": "ok" })));
+}
