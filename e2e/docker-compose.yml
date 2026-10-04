@@ -1,0 +1,78 @@
+# The end-to-end stack. Everything uses host networking so the registry, the
+# clients on the host and the fake GitHub agree on `localhost` URLs (the
+# browser-facing OAuth redirect and the server-side token exchange use the
+# same address). Started by e2e/run.sh.
+name: minregistry-e2e
+
+services:
+  registry:
+    profiles: ["registry"]
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: minregistry:e2e
+    network_mode: host
+    environment:
+      MINREGISTRY_LISTEN: 127.0.0.1:5000
+      MINREGISTRY_PUBLIC_URL: http://localhost:5000
+      MINREGISTRY_GITHUB_CLIENT_ID: e2e-client
+      MINREGISTRY_GITHUB_CLIENT_SECRET: e2e-secret
+      MINREGISTRY_GITHUB_URL: http://127.0.0.1:5555
+      MINREGISTRY_GITHUB_API_URL: http://127.0.0.1:5555
+      MINREGISTRY_ADMIN_GITHUB_LOGINS: e2e-admin
+      MINREGISTRY_SESSION_SECRET: ${E2E_SESSION_SECRET:?set by run.sh}
+      MINREGISTRY_STORAGE: ${MINREGISTRY_STORAGE:-fs}
+      MINREGISTRY_S3_ENDPOINT: http://127.0.0.1:9000
+      MINREGISTRY_S3_REGION: us-east-1
+      MINREGISTRY_S3_BUCKET: minregistry
+      MINREGISTRY_S3_ACCESS_KEY: minioadmin
+      MINREGISTRY_S3_SECRET_KEY: minioadmin
+      MINREGISTRY_S3_PATH_STYLE: "true"
+      MINREGISTRY_LOG: info
+    volumes:
+      - registry-data:/data
+    depends_on:
+      fake-github:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+        required: false
+
+  fake-github:
+    image: python:3.12-alpine
+    network_mode: host
+    command: ["python3", "/fake_github.py"]
+    environment:
+      FAKE_GITHUB_PORT: "5555"
+      FAKE_GITHUB_CLIENT_ID: e2e-client
+      FAKE_GITHUB_CLIENT_SECRET: e2e-secret
+      FAKE_GITHUB_DEFAULT_LOGIN: e2e-admin
+    volumes:
+      - ./fake-github/fake_github.py:/fake_github.py:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5555/healthz"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+
+  # MinIO no longer publishes official container images; Bitnami's legacy
+  # build is the maintained-enough prebuilt MinIO available for both amd64
+  # and arm64 (see docs/adr/0006-minio-image-for-tests.md).
+  minio:
+    profiles: ["s3"]
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+    network_mode: host
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_DEFAULT_BUCKETS: minregistry
+      MINIO_API_PORT_NUMBER: "9000"
+      MINIO_CONSOLE_PORT_NUMBER: "9001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:9000/minio/health/ready"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+volumes:
+  registry-data:

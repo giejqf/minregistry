@@ -1,0 +1,11 @@
+.git
+target
+data
+web/node_modules
+web/dist
+web/coverage
+e2e/.work
+e2e/.cache
+**/*.db
+**/*.db-wal
+**/*.db-shm
