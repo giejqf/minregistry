@@ -9,6 +9,7 @@ function manifest(digest: string, overrides: Partial<ManifestSummary> = {}): Man
     media_type: 'application/vnd.oci.image.manifest.v1+json',
     size: 100,
     platforms: [],
+    child_digests: [],
     annotations: {},
     tags: [],
     created_at: '2026-10-01T00:00:00Z',
@@ -34,6 +35,33 @@ describe('groupManifests', () => {
     expect(result.referrerGroups[2]?.subjectManifest).toBeUndefined();
     expect(result.referrerCounts.get('sha256:image')).toBe(2);
     expect(result.referrerCounts.get('sha256:old')).toBeUndefined();
+  });
+
+  it('nests the untagged platform images of an index under it', () => {
+    const arm = manifest('sha256:arm', { platforms: [{ os: 'linux', architecture: 'arm64' }] });
+    const amd = manifest('sha256:amd', { platforms: [{ os: 'linux', architecture: 'amd64' }] });
+    const win = manifest('sha256:win', {
+      platforms: [{ os: 'windows', architecture: 'amd64', os_version: '10.0.20348.2655' }],
+      tags: ['windows'],
+    });
+    const index = manifest('sha256:index', {
+      media_type: 'application/vnd.oci.image.index.v1+json',
+      child_digests: ['sha256:win', 'sha256:arm', 'sha256:amd', 'sha256:missing'],
+      tags: ['latest'],
+      created_at: '2026-10-02T00:00:00Z',
+    });
+    const loose = manifest('sha256:loose');
+
+    const result = groupManifests([arm, amd, win, index, loose]);
+
+    // Tagged platform images stay listed on their own as well.
+    expect(result.manifests.map((m) => m.digest)).toEqual(['sha256:index', 'sha256:loose', 'sha256:win']);
+    expect(result.children.get('sha256:index')?.map((m) => m.digest)).toEqual([
+      'sha256:amd',
+      'sha256:arm',
+      'sha256:win',
+    ]);
+    expect(result.children.has('sha256:loose')).toBe(false);
   });
 
   it('handles repositories without referrers', () => {

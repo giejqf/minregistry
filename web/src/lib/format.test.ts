@@ -9,6 +9,7 @@ import {
   fromLocalInputValue,
   mediaTypeLabel,
   platformLabel,
+  platformTitle,
   pullReference,
   shortDigest,
   toLocalInputValue,
@@ -73,6 +74,10 @@ describe('labels', () => {
   it('formats platforms', () => {
     expect(platformLabel({ os: 'linux', architecture: 'arm64', variant: 'v8' })).toBe('linux/arm64/v8');
     expect(platformLabel({ os: 'linux', architecture: 'amd64', variant: null })).toBe('linux/amd64');
+    const windows = { os: 'windows', architecture: 'amd64', os_version: '10.0.20348.2655' };
+    expect(platformLabel(windows)).toBe('windows/amd64');
+    expect(platformTitle(windows)).toBe('windows/amd64 10.0.20348.2655');
+    expect(platformTitle({ os: 'linux', architecture: 'arm64' })).toBe('linux/arm64');
   });
   it('hides the artifact type of plain images', () => {
     expect(displayArtifactType('application/vnd.docker.container.image.v1+json')).toBeNull();

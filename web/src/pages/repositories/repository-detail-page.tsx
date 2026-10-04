@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileBox, Link2, ShieldCheck, Tag, Trash2 } from 'lucide-react';
+import { ChevronDown, CornerDownRight, FileBox, Link2, ShieldCheck, Tag, Trash2 } from 'lucide-react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, Link } from 'react-router';
 import { toast } from 'sonner';
 
@@ -19,11 +20,13 @@ import {
   formatBytes,
   mediaTypeLabel,
   platformLabel,
+  platformTitle,
   pullReference,
   registryHost,
   shortDigest,
 } from '@/lib/format';
 import { groupManifests, preferredTag, type ReferrerGroup } from '@/lib/manifests';
+import { cn } from '@/lib/utils';
 import {
   deleteRepositoryManifestMutation,
   deleteRepositoryMutation,
@@ -161,14 +164,13 @@ function Platforms({ manifest }: { manifest: ManifestSummary }) {
   if (manifest.platforms.length === 0) return <span className="text-muted-foreground">—</span>;
   return (
     <div className="flex max-w-56 flex-wrap gap-1">
-      {manifest.platforms.map((p) => {
-        const label = platformLabel(p);
-        return (
-          <Badge key={label} variant="outline" className="font-mono">
-            {label}
-          </Badge>
-        );
-      })}
+      {manifest.platforms.map((p, i) => (
+        // An index may list the same platform twice (e.g. attestations), so the key includes the position.
+        <Badge key={`${platformTitle(p)}-${i}`} variant="outline" className="font-mono" title={platformTitle(p)}>
+          {platformLabel(p)}
+          {p.os_version && <span className="text-muted-foreground">{p.os_version}</span>}
+        </Badge>
+      ))}
     </div>
   );
 }
@@ -212,23 +214,98 @@ function DeleteManifestButton({
   );
 }
 
+function ManifestRow({
+  repo,
+  manifest: m,
+  referrers,
+  mutations,
+  nested = false,
+  toggle,
+}: {
+  repo: RepositoryDetail;
+  manifest: ManifestSummary;
+  referrers: number;
+  mutations: Mutations;
+  /** A platform image shown under its index. */
+  nested?: boolean;
+  /** Expand/collapse control for an index with platform images. */
+  toggle?: ReactNode;
+}) {
+  return (
+    <TableRow className={cn('align-top', nested && 'bg-muted/30 hover:bg-muted/50')}>
+      <TableCell className={nested ? 'pl-10' : 'pl-4'}>
+        <div className="flex items-center gap-1.5">
+          {nested && <CornerDownRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
+          <Digest digest={m.digest} />
+        </div>
+        {toggle}
+        {referrers > 0 && (
+          <a href={`#referrers-${m.digest}`} className="mt-1 block w-fit">
+            <Badge variant="secondary">
+              <Link2 /> {referrers === 1 ? '1 referrer' : `${referrers} referrers`}
+            </Badge>
+          </a>
+        )}
+      </TableCell>
+      <TableCell>
+        <ManifestType manifest={m} />
+      </TableCell>
+      <TableCell>
+        <Platforms manifest={m} />
+      </TableCell>
+      <TableCell className="text-right whitespace-nowrap tabular-nums">{formatBytes(m.size)}</TableCell>
+      <TableCell>
+        {m.tags.length ? (
+          <div className="flex max-w-48 flex-wrap gap-1">
+            {m.tags.map((t) => (
+              <Badge key={t} variant="secondary">
+                <Tag /> {t}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <span className="text-muted-foreground">{nested ? '—' : 'untagged'}</span>
+        )}
+      </TableCell>
+      <TableCell>
+        <Timestamp value={m.created_at} />
+        {m.pushed_by && <div className="text-xs text-muted-foreground">by {m.pushed_by}</div>}
+      </TableCell>
+      <TableCell className="pr-4">
+        <DeleteManifestButton repo={repo} manifest={m} mutations={mutations} />
+      </TableCell>
+    </TableRow>
+  );
+}
+
 function ManifestsCard({
   repo,
   manifests,
+  platformImages,
   referrerCounts,
   mutations,
 }: {
   repo: RepositoryDetail;
   manifests: ManifestSummary[];
+  platformImages: Map<string, ManifestSummary[]>;
   referrerCounts: Map<string, number>;
   mutations: Mutations;
 }) {
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
+  const toggle = (digest: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(digest)) next.add(digest);
+      return next;
+    });
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Manifests</CardTitle>
         <CardDescription>
-          Images, indexes and artifacts stored in this repository (referrers are listed separately).
+          Images, indexes and artifacts stored in this repository. The platform images of a multi-arch index are listed
+          under it; referrers are listed separately.
         </CardDescription>
       </CardHeader>
       <CardContent className={manifests.length ? 'px-0' : undefined}>
@@ -251,47 +328,43 @@ function ManifestsCard({
             </TableHeader>
             <TableBody>
               {manifests.map((m) => {
-                const referrers = referrerCounts.get(m.digest) ?? 0;
+                const images = platformImages.get(m.digest) ?? [];
+                const open = expanded.has(m.digest);
+                const count = images.length === 1 ? '1 platform image' : `${images.length} platform images`;
                 return (
-                  <TableRow key={m.digest} className="align-top">
-                    <TableCell className="pl-4">
-                      <Digest digest={m.digest} />
-                      {referrers > 0 && (
-                        <a href={`#referrers-${m.digest}`} className="mt-1 block w-fit">
-                          <Badge variant="secondary">
-                            <Link2 /> {referrers === 1 ? '1 referrer' : `${referrers} referrers`}
-                          </Badge>
-                        </a>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <ManifestType manifest={m} />
-                    </TableCell>
-                    <TableCell>
-                      <Platforms manifest={m} />
-                    </TableCell>
-                    <TableCell className="text-right whitespace-nowrap tabular-nums">{formatBytes(m.size)}</TableCell>
-                    <TableCell>
-                      {m.tags.length ? (
-                        <div className="flex max-w-48 flex-wrap gap-1">
-                          {m.tags.map((t) => (
-                            <Badge key={t} variant="secondary">
-                              <Tag /> {t}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">untagged</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Timestamp value={m.created_at} />
-                      {m.pushed_by && <div className="text-xs text-muted-foreground">by {m.pushed_by}</div>}
-                    </TableCell>
-                    <TableCell className="pr-4">
-                      <DeleteManifestButton repo={repo} manifest={m} mutations={mutations} />
-                    </TableCell>
-                  </TableRow>
+                  <Fragment key={m.digest}>
+                    <ManifestRow
+                      repo={repo}
+                      manifest={m}
+                      referrers={referrerCounts.get(m.digest) ?? 0}
+                      mutations={mutations}
+                      toggle={
+                        images.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            className="mt-1 -ml-2 text-muted-foreground"
+                            aria-expanded={open}
+                            onClick={() => toggle(m.digest)}
+                          >
+                            <ChevronDown className={cn('transition-transform', !open && '-rotate-90')} />
+                            {open ? `Hide ${count}` : `Show ${count}`}
+                          </Button>
+                        )
+                      }
+                    />
+                    {open &&
+                      images.map((child) => (
+                        <ManifestRow
+                          key={child.digest}
+                          repo={repo}
+                          manifest={child}
+                          referrers={referrerCounts.get(child.digest) ?? 0}
+                          mutations={mutations}
+                          nested
+                        />
+                      ))}
+                  </Fragment>
                 );
               })}
             </TableBody>
@@ -399,7 +472,7 @@ function ReferrersCard({
 
 function RepositoryView({ repo }: { repo: RepositoryDetail }) {
   const mutations = useRepositoryMutations(repo);
-  const { manifests, referrerGroups, referrerCounts } = groupManifests(repo.manifests);
+  const { manifests, children, referrerGroups, referrerCounts } = groupManifests(repo.manifests);
   const host = registryHost();
   const tag = preferredTag(repo.tags);
   const pull = `docker pull ${pullReference(host, repo.name, tag?.name ?? 'latest')}`;
@@ -455,7 +528,13 @@ function RepositoryView({ repo }: { repo: RepositoryDetail }) {
       ) : (
         <>
           <TagsCard repo={repo} mutations={mutations} />
-          <ManifestsCard repo={repo} manifests={manifests} referrerCounts={referrerCounts} mutations={mutations} />
+          <ManifestsCard
+            repo={repo}
+            manifests={manifests}
+            platformImages={children}
+            referrerCounts={referrerCounts}
+            mutations={mutations}
+          />
           <ReferrersCard repo={repo} groups={referrerGroups} mutations={mutations} />
         </>
       )}

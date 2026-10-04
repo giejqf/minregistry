@@ -85,6 +85,10 @@ pub(crate) async fn get_repository(
     for t in &tag_rows {
         tags_by_digest.entry(t.manifest_digest.clone()).or_default().push(t.name.clone());
     }
+    let mut children: HashMap<String, Vec<String>> = HashMap::new();
+    for (parent, child) in db::manifests::children(&state.db.read, repo.id).await? {
+        children.entry(parent).or_default().push(child);
+    }
     let manifests = db::manifests::list(&state.db.read, repo.id)
         .await?
         .into_iter()
@@ -101,6 +105,7 @@ pub(crate) async fn get_repository(
                 .collect();
             ManifestSummary {
                 tags: tags_by_digest.remove(&m.digest).unwrap_or_default(),
+                child_digests: children.remove(&m.digest).unwrap_or_default(),
                 digest: m.digest,
                 media_type: m.media_type,
                 size: m.size,

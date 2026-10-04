@@ -162,6 +162,9 @@ pub(crate) struct PlatformSummary {
     pub os: String,
     pub architecture: String,
     pub variant: Option<String>,
+    /// The OCI `os.version`, e.g. the Windows build (`10.0.20348.2655`).
+    #[serde(alias = "os.version")]
+    pub os_version: Option<String>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -173,6 +176,8 @@ pub(crate) struct ManifestSummary {
     /// Set for referrers (signatures, SBOMs, …): the manifest they refer to.
     pub subject_digest: Option<String>,
     pub platforms: Vec<PlatformSummary>,
+    /// For indexes: the listed manifests stored in this repository (usually one per platform).
+    pub child_digests: Vec<String>,
     pub annotations: BTreeMap<String, String>,
     pub tags: Vec<String>,
     pub created_at: String,

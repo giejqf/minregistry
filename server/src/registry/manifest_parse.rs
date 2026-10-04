@@ -29,6 +29,9 @@ pub(crate) struct Platform {
     pub architecture: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub variant: Option<String>,
+    /// Distinguishes e.g. Windows Server releases of the same os/architecture.
+    #[serde(rename = "os.version", default, skip_serializing_if = "Option::is_none")]
+    pub os_version: Option<String>,
 }
 
 #[derive(Debug)]
@@ -257,14 +260,18 @@ mod tests {
             "mediaType": DOCKER_LIST,
             "manifests": [
                 {"mediaType": DOCKER_MANIFEST, "digest": d("amd64"), "size": 1, "platform": {"os": "linux", "architecture": "amd64"}},
-                {"mediaType": DOCKER_MANIFEST, "digest": d("arm64"), "size": 1, "platform": {"os": "linux", "architecture": "arm64", "variant": "v8"}}
+                {"mediaType": DOCKER_MANIFEST, "digest": d("arm64"), "size": 1, "platform": {"os": "linux", "architecture": "arm64", "variant": "v8"}},
+                {"mediaType": DOCKER_MANIFEST, "digest": d("win"), "size": 1, "platform": {"os": "windows", "architecture": "amd64", "os.version": "10.0.20348.2655"}}
             ]
         }))
         .unwrap();
         let p = parse(Some(DOCKER_LIST), &body).unwrap();
         assert_eq!(p.kind, Kind::Index);
-        assert_eq!(p.manifests.len(), 2);
+        assert_eq!(p.manifests.len(), 3);
         assert_eq!(p.platforms[1].variant.as_deref(), Some("v8"));
+        assert_eq!(p.platforms[2].os_version.as_deref(), Some("10.0.20348.2655"));
+        // Stored with the OCI field name.
+        assert!(serde_json::to_string(&p.platforms[2]).unwrap().contains("\"os.version\":\"10.0.20348.2655\""));
         assert!(p.artifact_type.is_none());
     }
 
@@ -288,7 +295,17 @@ mod tests {
     fn config_platform() {
         assert_eq!(
             platform_from_config(br#"{"architecture":"arm","os":"linux","variant":"v7","rootfs":{}}"#),
-            Some(Platform { os: "linux".into(), architecture: "arm".into(), variant: Some("v7".into()) })
+            Some(Platform {
+                os: "linux".into(),
+                architecture: "arm".into(),
+                variant: Some("v7".into()),
+                os_version: None
+            })
+        );
+        assert_eq!(
+            platform_from_config(br#"{"architecture":"amd64","os":"windows","os.version":"10.0.17763.6189"}"#)
+                .and_then(|p| p.os_version),
+            Some("10.0.17763.6189".into())
         );
         assert_eq!(platform_from_config(b"{}"), None);
     }

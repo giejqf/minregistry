@@ -125,6 +125,10 @@ export type ManifestSummary = {
      */
     subject_digest?: string | null;
     platforms: Array<PlatformSummary>;
+    /**
+     * For indexes: the listed manifests stored in this repository (usually one per platform).
+     */
+    child_digests: Array<string>;
     annotations: {
         [key: string]: string;
     };
@@ -143,6 +147,10 @@ export type PlatformSummary = {
     os: string;
     architecture: string;
     variant?: string | null;
+    /**
+     * The OCI `os.version`, e.g. the Windows build (`10.0.20348.2655`).
+     */
+    os_version?: string | null;
 };
 
 export type PrincipalDetail = {

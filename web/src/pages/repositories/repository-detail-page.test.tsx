@@ -23,6 +23,7 @@ const repo = {
         { os: 'linux', architecture: 'amd64' },
         { os: 'linux', architecture: 'arm64', variant: 'v8' },
       ],
+      child_digests: [],
       annotations: {},
       tags: ['latest'],
       created_at: '2026-10-02T00:00:00Z',
@@ -33,6 +34,7 @@ const repo = {
       media_type: 'application/vnd.oci.image.manifest.v1+json',
       size: 700,
       platforms: [],
+      child_digests: [],
       annotations: {},
       tags: [],
       artifact_type: 'application/vnd.dev.sigstore.bundle.v0.3+json',
@@ -56,6 +58,41 @@ describe('RepositoryDetailPage', () => {
     expect(screen.getByText('1 referrer')).toBeInTheDocument();
     expect(screen.getByText('application/vnd.dev.sigstore.bundle.v0.3+json')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /permissions/i })).toHaveAttribute('href', '/repositories/5/permissions');
+  });
+
+  it('nests the platform images of an index under it', async () => {
+    const AMD = `sha256:${'c'.repeat(64)}`;
+    const WIN = `sha256:${'d'.repeat(64)}`;
+    const image = (digest: string, platform: { os: string; architecture: string; os_version?: string }) => ({
+      digest,
+      media_type: 'application/vnd.oci.image.manifest.v1+json',
+      size: 500,
+      platforms: [platform],
+      child_digests: [],
+      annotations: {},
+      tags: [],
+      created_at: '2026-10-01T00:00:00Z',
+    });
+    const multi = {
+      ...repo,
+      manifests: [
+        { ...repo.manifests[0], child_digests: [AMD, WIN] },
+        image(AMD, { os: 'linux', architecture: 'amd64' }),
+        image(WIN, { os: 'windows', architecture: 'amd64', os_version: '10.0.20348.2655' }),
+      ],
+    };
+    mockApi({ 'GET /api/v1/repositories/5': { body: multi } });
+    renderPage(<RepositoryDetailPage />, { route: '/repositories/5', path: '/repositories/:id' });
+
+    const show = await screen.findByRole('button', { name: 'Show 2 platform images' });
+    expect(show).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('10.0.20348.2655')).not.toBeInTheDocument();
+    expect(screen.queryByText('untagged')).not.toBeInTheDocument();
+
+    await userEvent.click(show);
+    expect(screen.getByRole('button', { name: 'Hide 2 platform images' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('10.0.20348.2655')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `Delete manifest ${WIN.slice(0, 19)}…` })).toBeInTheDocument();
   });
 
   it('deletes a tag after confirmation', async () => {

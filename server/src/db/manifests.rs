@@ -63,6 +63,18 @@ pub(crate) async fn list(db: impl SqliteExecutor<'_>, repository_id: i64) -> sql
     .await
 }
 
+/// (index, child manifest) pairs of a repository.
+pub(crate) async fn children(db: impl SqliteExecutor<'_>, repository_id: i64) -> sqlx::Result<Vec<(String, String)>> {
+    let rows = sqlx::query!(
+        "SELECT manifest_digest, child_digest FROM manifest_refs
+         WHERE repository_id = ? AND kind = 'manifest' ORDER BY manifest_digest, child_digest",
+        repository_id
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(rows.into_iter().map(|r| (r.manifest_digest, r.child_digest)).collect())
+}
+
 /// Inserts a manifest; false if this repository already had it.
 pub(crate) async fn insert(tx: &mut Tx, m: &NewManifest<'_>) -> sqlx::Result<bool> {
     let r = sqlx::query!(

@@ -1347,6 +1347,7 @@
           "media_type",
           "size",
           "platforms",
+          "child_digests",
           "annotations",
           "tags",
           "created_at"
@@ -1380,6 +1381,13 @@
             "items": {
               "$ref": "#/components/schemas/PlatformSummary"
             }
+          },
+          "child_digests": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "For indexes: the listed manifests stored in this repository (usually one per platform)."
           },
           "annotations": {
             "type": "object",
@@ -1444,6 +1452,13 @@
               "string",
               "null"
             ]
+          },
+          "os_version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The OCI `os.version`, e.g. the Windows build (`10.0.20348.2655`)."
           }
         }
       },

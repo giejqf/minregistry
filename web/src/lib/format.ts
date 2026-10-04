@@ -94,9 +94,14 @@ export function formatMillis(ms: number): string {
   return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;
 }
 
-/** {os: linux, architecture: arm64, variant: v8} → "linux/arm64/v8". */
+/** {os: linux, architecture: arm64, variant: v8} → "linux/arm64/v8" (without the OS version). */
 export function platformLabel(p: PlatformSummary): string {
   return [p.os, p.architecture, p.variant].filter(Boolean).join('/');
+}
+
+/** The platform label with its OS version, e.g. "windows/amd64 10.0.20348.2655". */
+export function platformTitle(p: PlatformSummary): string {
+  return p.os_version ? `${platformLabel(p)} ${p.os_version}` : platformLabel(p);
 }
 
 const MEDIA_TYPES: Record<string, string> = {

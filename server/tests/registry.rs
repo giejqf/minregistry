@@ -233,7 +233,7 @@ async fn manifests_validation_tags_and_deletes() {
     // An index over the manifest; its child must exist in the repository.
     let index = serde_json::to_vec(&json!({
         "schemaVersion": 2, "mediaType": OCI_INDEX,
-        "manifests": [{"mediaType": OCI_MANIFEST, "digest": digest, "size": good.len(), "platform": {"os": "linux", "architecture": "arm64"}}]
+        "manifests": [{"mediaType": OCI_MANIFEST, "digest": digest, "size": good.len(), "platform": {"os": "windows", "architecture": "amd64", "os.version": "10.0.20348.2655"}}]
     }))
     .unwrap();
     assert_eq!(reg.push_manifest(name, "multi", OCI_INDEX, &index).await.status(), 201);
@@ -245,8 +245,17 @@ async fn manifests_validation_tags_and_deletes() {
     let (_, detail) = srv.admin.call(Method::GET, &format!("/repositories/{repo}"), None).await;
     let by_digest =
         |d: &str| detail["manifests"].as_array().unwrap().iter().find(|m| m["digest"] == d).unwrap().clone();
-    assert_eq!(by_digest(&digest)["platforms"], json!([{"os": "linux", "architecture": "arm64", "variant": "v8"}]));
-    assert_eq!(by_digest(&sha256(&index))["platforms"][0]["architecture"], "arm64");
+    assert_eq!(
+        by_digest(&digest)["platforms"],
+        json!([{"os": "linux", "architecture": "arm64", "variant": "v8", "os_version": null}])
+    );
+    assert_eq!(
+        by_digest(&sha256(&index))["platforms"],
+        json!([{"os": "windows", "architecture": "amd64", "variant": null, "os_version": "10.0.20348.2655"}])
+    );
+    // Indexes list the child manifests stored in the repository.
+    assert_eq!(by_digest(&sha256(&index))["child_digests"], json!([digest]));
+    assert_eq!(by_digest(&digest)["child_digests"], json!([]));
     assert_eq!(by_digest(&digest)["tags"].as_array().unwrap().len(), 5);
 
     // Tag delete removes only the tag; digest delete removes the manifest and its tags.

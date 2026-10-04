@@ -12,9 +12,13 @@ more columns and tables.
 - `manifests.annotations` (JSON object): the referrers API must return each
   referrer's annotations; storing them avoids reading every referrer manifest
   back from storage.
-- `manifests.platforms` (JSON array of `{os, architecture, variant}`): from an
-  index's descriptors, or from the config blob of an image manifest (read once
-  at push time, if ≤ 1 MiB). Shown on the repository page.
+- `manifests.platforms` (JSON array of `{os, architecture, variant, os.version}`,
+  absent fields omitted): from an index's descriptors, or from the config blob
+  of an image manifest (read once at push time, if ≤ 1 MiB). Shown on the
+  repository page; `os.version` tells apart e.g. Windows Server releases.
+  (The comment in `0001_init.sql` predates `os.version`; merged migrations are
+  checksummed and are not edited.) The repository page also nests an index's
+  platform images under it, using the `manifest_refs` of kind `manifest`.
 - `manifests.artifact_type` holds the *effective* artifact type: `artifactType`
   or, for image manifests without it, `config.mediaType` (as the referrers API
   defines it).
