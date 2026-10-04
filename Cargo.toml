@@ -5,7 +5,7 @@ members = ["server"]
 [workspace.package]
 edition = "2021"
 license = "Apache-2.0"
-repository = "https://github.com/minregistry/minregistry"
+repository = "https://github.com/giejqf/minregistry"
 
 [profile.release]
 lto = "thin"
