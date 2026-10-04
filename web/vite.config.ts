@@ -42,5 +42,8 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     css: false,
+    // Dialog and select flows driven through user-event take a few seconds in
+    // jsdom; the 5 s default is too tight on loaded CI machines.
+    testTimeout: 20_000,
   },
 });

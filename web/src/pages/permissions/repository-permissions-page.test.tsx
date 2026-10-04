@@ -67,6 +67,7 @@ describe('RepositoryPermissionsPage', () => {
     });
     await userEvent.click(await screen.findByRole('combobox', { name: 'Level for ci-deploy' }));
     await userEvent.click(await screen.findByRole('option', { name: 'read' }));
-    await waitFor(() => expect(requests.find((r) => r.method === 'PUT')?.body).toEqual({ level: 'read' }));
+    const put = () => requests.find((r) => r.method === 'PUT' && r.url.pathname.endsWith('/permissions/3'));
+    await waitFor(() => expect(put()?.body).toEqual({ level: 'read' }));
   });
 });
