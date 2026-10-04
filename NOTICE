@@ -1,0 +1,9 @@
+MinRegistry
+Copyright 2026 The MinRegistry Authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes software developed by third parties, distributed under
+their own licenses (MIT, Apache-2.0, BSD and other permissive licenses), as
+listed in Cargo.lock and web/pnpm-lock.yaml. The license of every Rust
+dependency is checked with `cargo deny check licenses` (see deny.toml).

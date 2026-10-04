@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["server"]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/minregistry/minregistry"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = "symbols"
+
+# sqlx macros and sha2 are noticeably faster when optimized, even in dev builds.
+[profile.dev.package.sqlx-macros]
+opt-level = 3
+[profile.dev.package.sha2]
+opt-level = 3

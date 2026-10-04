@@ -1,0 +1,11 @@
+/target/
+/data/
+node_modules/
+/web/dist/
+/web/coverage/
+/e2e/.work/
+.env
+*.db
+*.db-shm
+*.db-wal
+.DS_Store
