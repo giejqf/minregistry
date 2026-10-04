@@ -24,9 +24,16 @@ Chunked uploads span several requests, and clients may disconnect mid-chunk.
   upload).
 - **Interrupted chunks keep their bytes**: if the client disconnects, the
   bytes that reached the disk are committed to `offset`, and `GET` on the
-  session reports them in `Range`, so the client can resume from there. On a
+  session reports them in `Range`, so the client can resume from there. A
+  body that ends before its `Content-Length` counts as interrupted. On a
   server-side I/O error the request's bytes are discarded (the file is
   truncated back) and the hash is rebuilt on the next request.
+- A chunk is received in a task of its own that holds the session lock until
+  the offset is recorded, so progress is kept even if the request handler is
+  cancelled. `GET` on a session waits (up to 30 s) for that lock: a client
+  that gives up on a chunk typically asks for the progress immediately, while
+  the server is still storing the bytes already in its socket buffers, and
+  must not be told less than what will be kept.
 - An empty session reports `Range: 0-0`, as the reference implementation
   does. `Location` headers are relative (`/v2/<name>/blobs/uploads/<uuid>`).
 - Completion verifies the digest, copies (or hard-links, on the same

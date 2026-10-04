@@ -22,7 +22,10 @@ use axum::{
 use futures::StreamExt;
 use serde_json::json;
 use sha2::{Digest as _, Sha256};
-use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufWriter};
+use tokio::{
+    io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufWriter},
+    sync::OwnedMutexGuard,
+};
 
 use super::{range::parse_content_range, Ctx, OciCode};
 use crate::{
@@ -115,8 +118,9 @@ struct Appended {
     client_error: Option<String>,
 }
 
-/// Appends the request body at `offset`, hashing as bytes arrive.
-async fn append(path: &Path, live: &mut Live, offset: u64, body: Body) -> AppResult<Appended> {
+/// Appends the request body at `offset`, hashing as bytes arrive. A body that
+/// ends before its declared `expected` length counts as interrupted.
+async fn append(path: &Path, live: &mut Live, offset: u64, body: Body, expected: Option<u64>) -> AppResult<Appended> {
     let file = tokio::fs::OpenOptions::new().write(true).open(path).await?;
     let result: std::io::Result<Appended> = async {
         // Drop any bytes past the committed offset (from an earlier failure).
@@ -142,6 +146,11 @@ async fn append(path: &Path, live: &mut Live, offset: u64, body: Body) -> AppRes
             }
         }
         writer.flush().await?;
+        if client_error.is_none() {
+            if let Some(expected) = expected.filter(|e| written < *e) {
+                client_error = Some(format!("request body ended after {written} of {expected} bytes"));
+            }
+        }
         Ok(Appended { offset: offset + written, client_error })
     }
     .await;
@@ -160,6 +169,41 @@ async fn append(path: &Path, live: &mut Live, offset: u64, body: Body) -> AppRes
             Err(e.into())
         }
     }
+}
+
+fn content_length(headers: &axum::http::HeaderMap) -> Option<u64> {
+    headers.get(header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()).and_then(|v| v.parse().ok())
+}
+
+/// Receives a chunk of a session in a task of its own. When a client
+/// disconnects mid-chunk the server may cancel the request handler; the task
+/// still records the bytes that arrived, so the upload can resume from the
+/// reported `Range`, and the in-memory hash never covers bytes that the
+/// recorded offset does not.
+async fn receive(
+    ctx: &Ctx,
+    uuid: &str,
+    mut live: OwnedMutexGuard<Live>,
+    offset: u64,
+    body: Body,
+) -> AppResult<(OwnedMutexGuard<Live>, Appended)> {
+    let state = ctx.state.clone();
+    let uuid = uuid.to_string();
+    let expected = content_length(&ctx.headers);
+    tokio::spawn(async move {
+        let path = state.uploads.path(&uuid);
+        let appended = append(&path, &mut live, offset, body, expected).await?;
+        if appended.offset != offset {
+            let recorded = i64::try_from(appended.offset).unwrap_or(i64::MAX);
+            db::uploads::set_offset(&state.db.write, &uuid, recorded, &crate::time::now()).await?;
+        }
+        if let Some(e) = &appended.client_error {
+            tracing::info!(%uuid, offset = appended.offset, error = %e, "upload interrupted; progress kept");
+        }
+        Ok((live, appended))
+    })
+    .await
+    .map_err(|e| AppError::internal(format_args!("upload task failed: {e}")))?
 }
 
 fn range_header(offset: u64) -> HeaderValue {
@@ -278,7 +322,7 @@ async fn monolithic(ctx: &Ctx, name: &str, repo_id: i64, expected: Digest, body:
     tokio::fs::File::create(&tmp).await?;
     let mut live = Live { hasher: Some(Sha256::new()), hashed: 0 };
     let result = async {
-        let appended = append(&tmp, &mut live, 0, body).await?;
+        let appended = append(&tmp, &mut live, 0, body, content_length(&ctx.headers)).await?;
         if let Some(e) = appended.client_error {
             return Err(AppError::bad_request(OciCode::BlobUploadInvalid, format!("upload interrupted: {e}")));
         }
@@ -364,8 +408,7 @@ fn check_content_range(ctx: &Ctx, name: &str, uuid: &str, offset: u64) -> AppRes
 /// `PATCH /v2/<name>/blobs/uploads/<uuid>` — streamed or chunked data.
 pub(super) async fn patch(ctx: &Ctx, name: &str, uuid: &str, body: Body) -> AppResult<Response> {
     let (_, _) = session(ctx, name, uuid).await?;
-    let entry = ctx.state.uploads.entry(uuid);
-    let mut live = entry.lock().await;
+    let mut live = ctx.state.uploads.entry(uuid).lock_owned().await;
     // Re-read under the session lock: a concurrent request may have advanced it.
     let row = db::uploads::get(&ctx.state.db.read, uuid)
         .await?
@@ -374,16 +417,8 @@ pub(super) async fn patch(ctx: &Ctx, name: &str, uuid: &str, body: Body) -> AppR
     check_content_range(ctx, name, uuid, offset)?;
     let path = ctx.state.uploads.path(uuid);
     ensure_hasher(&path, &mut live, offset).await.map_err(|e| missing_staging(uuid, e))?;
-    let appended = append(&path, &mut live, offset, body).await?;
-    db::uploads::set_offset(
-        &ctx.state.db.write,
-        uuid,
-        i64::try_from(appended.offset).unwrap_or(i64::MAX),
-        &crate::time::now(),
-    )
-    .await?;
-    if let Some(e) = appended.client_error {
-        tracing::info!(uuid, offset = appended.offset, error = %e, "upload chunk interrupted; progress kept");
+    let (_live, appended) = receive(ctx, uuid, live, offset, body).await?;
+    if appended.client_error.is_some() {
         return Err(AppError::bad_request(OciCode::BlobUploadInvalid, "upload interrupted"));
     }
     Ok(session_response(StatusCode::ACCEPTED, name, uuid, appended.offset))
@@ -398,8 +433,7 @@ fn missing_staging(uuid: &str, e: std::io::Error) -> AppError {
 pub(super) async fn put(ctx: &Ctx, name: &str, uuid: &str, body: Body) -> AppResult<Response> {
     let (repo_id, _) = session(ctx, name, uuid).await?;
     let expected = parse_expected_digest(ctx.query("digest").unwrap_or_default())?;
-    let entry = ctx.state.uploads.entry(uuid);
-    let mut live = entry.lock().await;
+    let mut live = ctx.state.uploads.entry(uuid).lock_owned().await;
     let row = db::uploads::get(&ctx.state.db.read, uuid)
         .await?
         .ok_or_else(|| AppError::not_found(OciCode::BlobUploadUnknown, "blob upload unknown to registry"))?;
@@ -407,16 +441,7 @@ pub(super) async fn put(ctx: &Ctx, name: &str, uuid: &str, body: Body) -> AppRes
     check_content_range(ctx, name, uuid, offset)?;
     let path = ctx.state.uploads.path(uuid);
     ensure_hasher(&path, &mut live, offset).await.map_err(|e| missing_staging(uuid, e))?;
-    let appended = append(&path, &mut live, offset, body).await?;
-    if appended.offset != offset {
-        db::uploads::set_offset(
-            &ctx.state.db.write,
-            uuid,
-            i64::try_from(appended.offset).unwrap_or(i64::MAX),
-            &crate::time::now(),
-        )
-        .await?;
-    }
+    let (mut live, appended) = receive(ctx, uuid, live, offset, body).await?;
     if let Some(e) = appended.client_error {
         return Err(AppError::bad_request(OciCode::BlobUploadInvalid, format!("upload interrupted: {e}")));
     }
@@ -431,9 +456,20 @@ pub(super) async fn put(ctx: &Ctx, name: &str, uuid: &str, body: Body) -> AppRes
     result
 }
 
+/// How long a status request waits for a chunk that is still being received.
+const STATUS_WAIT: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// `GET /v2/<name>/blobs/uploads/<uuid>` — progress of a session.
 pub(super) async fn status(ctx: &Ctx, name: &str, uuid: &str) -> AppResult<Response> {
-    let (_, row) = session(ctx, name, uuid).await?;
+    let (_, _) = session(ctx, name, uuid).await?;
+    // A client that gave up on a chunk asks for the progress right away, while
+    // the server may still be storing the bytes that already arrived. Wait for
+    // that chunk to finish so `Range` covers everything that will be kept.
+    let entry = ctx.state.uploads.entry(uuid);
+    let _settled = tokio::time::timeout(STATUS_WAIT, entry.lock()).await.ok();
+    let row = db::uploads::get(&ctx.state.db.read, uuid)
+        .await?
+        .ok_or_else(|| AppError::not_found(OciCode::BlobUploadUnknown, "blob upload unknown to registry"))?;
     Ok(session_response(StatusCode::NO_CONTENT, name, uuid, offset_of(&row)))
 }
 

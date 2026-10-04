@@ -29,9 +29,12 @@ if curl -sS -u "$auth" -X PATCH -H 'Expect:' -H 'Content-Type: application/octet
   fail "the first chunk was not interrupted"
 fi
 
+# Ask right away, as a client resuming after a failure would: the registry
+# must report every byte it kept (an empty session reports 0-0).
 range=$(curl -sS -u "$auth" -D - -o /dev/null "$url" | tr -d '\r' | awk 'tolower($1) == "range:" {print $2}')
 offset=$((${range#0-} + 1))
-((offset > 0 && offset < first)) || fail "unexpected progress after the interruption: Range $range"
+((offset > 1024 * 1024 && offset < first)) ||
+  fail "the bytes of the interrupted chunk were not kept or not reported (Range: ${range:-none})"
 pass "interrupted after $offset bytes; the registry kept them (Range: $range)"
 
 # Resume: the rest of the layer as the next chunk.

@@ -432,3 +432,106 @@ async fn auth_matrix() {
     assert_eq!(writer_reg.status(Method::GET, "/v2/").await, 200);
     srv.assert_audit("writer", "login", None, None, "denied").await;
 }
+
+/// A client that disconnects mid-chunk keeps the bytes that arrived, whether
+/// the connection ends with FIN (the handler sees a body error) or RST (the
+/// server drops the request handler right away).
+#[tokio::test]
+async fn interrupted_chunk_keeps_progress() {
+    for reset in [false, true] {
+        interrupted_chunk(reset).await;
+    }
+}
+
+async fn interrupted_chunk(reset: bool) {
+    use base64::Engine;
+    use tokio::io::AsyncWriteExt;
+
+    let srv = TestServer::start().await;
+    let (_, secret) = srv.identity("resumer").await;
+    let reg = srv.registry("resumer", &secret);
+    let blob: Vec<u8> = (0..200_000u32).map(|i| (i % 251) as u8).collect();
+    let res = reg.req(Method::POST, "/v2/resume/me/blobs/uploads/").send().await.unwrap();
+    let loc = res.headers()[header::LOCATION].to_str().unwrap().to_string();
+
+    // Declare the whole blob as one chunk, send part of it, then disconnect.
+    let sent = 64_000;
+    let auth = base64::engine::general_purpose::STANDARD.encode(format!("resumer:{secret}"));
+    let head = format!(
+        "PATCH {loc} HTTP/1.1\r\nHost: {}\r\nAuthorization: Basic {auth}\r\nContent-Type: application/octet-stream\r\n\
+         Content-Range: 0-{}\r\nContent-Length: {}\r\n\r\n",
+        srv.addr,
+        blob.len() - 1,
+        blob.len()
+    );
+    let mut tcp = tokio::net::TcpStream::connect(srv.addr).await.unwrap();
+    tcp.write_all(head.as_bytes()).await.unwrap();
+    tcp.write_all(&blob[..sent]).await.unwrap();
+    tcp.flush().await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    if reset {
+        tcp.set_zero_linger().unwrap();
+    }
+    drop(tcp);
+
+    // The bytes that arrived are kept and reported.
+    let want = format!("0-{}", sent - 1);
+    let mut range = String::new();
+    for _ in 0..50 {
+        let res = reg.req(Method::GET, &loc).send().await.unwrap();
+        range = res.headers()[header::RANGE].to_str().unwrap().to_string();
+        if range == want {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    assert_eq!(range, want, "progress after a {} disconnect", if reset { "RST" } else { "FIN" });
+
+    // Resume from there; the digest covers exactly the stored bytes.
+    let res = reg
+        .req(Method::PATCH, &loc)
+        .header(header::CONTENT_RANGE, format!("{sent}-{}", blob.len() - 1))
+        .body(blob[sent..].to_vec())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 202);
+    let loc = res.headers()[header::LOCATION].to_str().unwrap().to_string();
+    let res = reg.req(Method::PUT, &format!("{loc}?digest={}", sha256(&blob))).send().await.unwrap();
+    assert_eq!(res.status(), 201, "{}", res.text().await.unwrap());
+    let got = reg.req(Method::GET, &format!("/v2/resume/me/blobs/{}", sha256(&blob))).send().await.unwrap();
+    assert_eq!(got.bytes().await.unwrap().as_ref(), blob.as_slice());
+}
+
+/// A client that gives up on a chunk and immediately asks for the progress
+/// gets the final range, not a snapshot taken while the server is still
+/// storing the bytes that arrived.
+#[tokio::test]
+async fn status_waits_for_an_interrupted_chunk() {
+    use base64::Engine;
+    use tokio::io::AsyncWriteExt;
+
+    let srv = TestServer::start().await;
+    let (_, secret) = srv.identity("hasty").await;
+    let reg = srv.registry("hasty", &secret);
+    let res = reg.req(Method::POST, "/v2/hasty/blob/blobs/uploads/").send().await.unwrap();
+    let loc = res.headers()[header::LOCATION].to_str().unwrap().to_string();
+
+    let declared = 48 * 1024 * 1024;
+    let sent = 24 * 1024 * 1024;
+    let auth = base64::engine::general_purpose::STANDARD.encode(format!("hasty:{secret}"));
+    let head = format!(
+        "PATCH {loc} HTTP/1.1\r\nHost: {}\r\nAuthorization: Basic {auth}\r\nContent-Type: application/octet-stream\r\n\
+         Content-Range: 0-{}\r\nContent-Length: {declared}\r\n\r\n",
+        srv.addr,
+        declared - 1
+    );
+    let mut tcp = tokio::net::TcpStream::connect(srv.addr).await.unwrap();
+    tcp.write_all(head.as_bytes()).await.unwrap();
+    tcp.write_all(&vec![7u8; sent]).await.unwrap();
+    drop(tcp); // FIN: everything written is still delivered to the server
+
+    let res = reg.req(Method::GET, &loc).send().await.unwrap();
+    assert_eq!(res.status(), 204);
+    assert_eq!(res.headers()[header::RANGE], format!("0-{}", sent - 1).as_str());
+}
