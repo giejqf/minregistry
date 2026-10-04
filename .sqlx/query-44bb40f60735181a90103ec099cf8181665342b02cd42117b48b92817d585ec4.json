@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE repositories SET deleted_at = NULL, created_by = ?, created_at = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "44bb40f60735181a90103ec099cf8181665342b02cd42117b48b92817d585ec4"
+}

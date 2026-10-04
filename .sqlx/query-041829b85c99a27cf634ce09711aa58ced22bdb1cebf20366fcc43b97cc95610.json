@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO tags (repository_id, name, manifest_digest, updated_at, updated_by) VALUES (?, ?, ?, ?, ?)\n         ON CONFLICT (repository_id, name) DO UPDATE SET\n             manifest_digest = excluded.manifest_digest, updated_at = excluded.updated_at, updated_by = excluded.updated_by",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "041829b85c99a27cf634ce09711aa58ced22bdb1cebf20366fcc43b97cc95610"
+}

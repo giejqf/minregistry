@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT level FROM permissions WHERE principal_id = ? AND repository_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "level",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "permissions",
+            "name": "level"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "26ba554d9ea741ad64b046f1381bc80663515f6e02878a2c6fdda91b6b5a6742"
+}

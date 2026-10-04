@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT u.uuid, r.name AS repository, p.name AS principal, u.\"offset\" AS \"offset!: i64\",\n                  u.started_at, u.last_activity_at\n           FROM uploads u JOIN repositories r ON r.id = u.repository_id JOIN principals p ON p.id = u.principal_id\n           ORDER BY u.last_activity_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "name": "uuid",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "name": "repository",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "repositories",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "principal",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "principals",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "offset!: i64",
+        "ordinal": 3,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "offset"
+          }
+        }
+      },
+      {
+        "name": "started_at",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "name": "last_activity_at",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "last_activity_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1069139224ba20dd1902efe0a108880dd4fcda2ecf1cb1aac3485b7cf9cd8a82"
+}

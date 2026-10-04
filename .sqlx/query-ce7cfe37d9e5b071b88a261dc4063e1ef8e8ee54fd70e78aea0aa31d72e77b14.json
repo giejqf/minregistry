@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM repository_blobs WHERE repository_id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "ce7cfe37d9e5b071b88a261dc4063e1ef8e8ee54fd70e78aea0aa31d72e77b14"
+}

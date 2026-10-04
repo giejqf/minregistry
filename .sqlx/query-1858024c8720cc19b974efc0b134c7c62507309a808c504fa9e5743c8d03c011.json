@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT repository_id, digest, subject_digest, created_at FROM manifests",
+  "describe": {
+    "columns": [
+      {
+        "name": "repository_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "repository_id"
+          }
+        }
+      },
+      {
+        "name": "digest",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "digest"
+          }
+        }
+      },
+      {
+        "name": "subject_digest",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "subject_digest"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "1858024c8720cc19b974efc0b134c7c62507309a808c504fa9e5743c8d03c011"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE uploads SET \"offset\" = ?, last_activity_at = ? WHERE uuid = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "8805dfaf68cc956a9bade853dd3b93b3454ab772dd6a23418f0f26993a3101b6"
+}

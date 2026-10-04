@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM manifests WHERE repository_id = ? AND digest = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "2633eb6ff69d153efca7b6cace470619e8793b0f642e6dad72cb81ab2912af93"
+}

@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT digest, media_type, size, artifact_type, annotations FROM manifests\n         WHERE repository_id = ?1 AND subject_digest = ?2 AND (?3 IS NULL OR artifact_type = ?3)\n         ORDER BY created_at, digest",
+  "describe": {
+    "columns": [
+      {
+        "name": "digest",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "digest"
+          }
+        }
+      },
+      {
+        "name": "media_type",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "media_type"
+          }
+        }
+      },
+      {
+        "name": "size",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "name": "artifact_type",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "artifact_type"
+          }
+        }
+      },
+      {
+        "name": "annotations",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "annotations"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "64864b5150fe1da5d228ed6df2390dc7ad5214e158ca6fe30d8f73e56ad09069"
+}

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT manifest_digest FROM tags WHERE repository_id = ? AND name = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "manifest_digest",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "tags",
+            "name": "manifest_digest"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "83781c0f741d278346423bd399f0789d0da1be81995ef4e5d8fcc7dec70ab7e9"
+}

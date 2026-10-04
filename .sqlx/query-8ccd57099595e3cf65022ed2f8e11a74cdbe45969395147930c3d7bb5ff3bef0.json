@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT name FROM tags WHERE repository_id = ?1 AND (?2 IS NULL OR name > ?2) ORDER BY name LIMIT ?3",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "tags",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8ccd57099595e3cf65022ed2f8e11a74cdbe45969395147930c3d7bb5ff3bef0"
+}

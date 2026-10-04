@@ -1,0 +1,33 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT g.digest, COALESCE(b.size, 0) AS \"size!: i64\" FROM gc_sweep g LEFT JOIN blobs b ON b.digest = g.digest\n           ORDER BY g.digest",
+  "describe": {
+    "columns": [
+      {
+        "name": "digest",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gc_sweep",
+            "name": "digest"
+          }
+        }
+      },
+      {
+        "name": "size!: i64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "b4868a2f150bea88f54793f63dddc0b62524ae4180f4b56c14da652f5bf8747f"
+}

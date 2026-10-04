@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT pe.repository_id, r.name AS repository_name, pe.level, g.name AS \"granted_by?\", pe.granted_at\n           FROM permissions pe\n           JOIN repositories r ON r.id = pe.repository_id AND r.deleted_at IS NULL\n           LEFT JOIN principals g ON g.id = pe.granted_by\n           WHERE pe.principal_id = ? ORDER BY r.name",
+  "describe": {
+    "columns": [
+      {
+        "name": "repository_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "permissions",
+            "name": "repository_id"
+          }
+        }
+      },
+      {
+        "name": "repository_name",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "repositories",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "level",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "permissions",
+            "name": "level"
+          }
+        }
+      },
+      {
+        "name": "granted_by?",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "principals",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "granted_at",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "permissions",
+            "name": "granted_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "760690c36e3ce0bb51fb33af0b39e859d19bb1bb3849a28c66859a19aec56ad2"
+}

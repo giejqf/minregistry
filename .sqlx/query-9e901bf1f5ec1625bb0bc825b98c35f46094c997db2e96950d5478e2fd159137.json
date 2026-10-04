@@ -1,0 +1,158 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, ts, principal_id, principal_name, action, repository, reference, digest, client_ip, user_agent,\n                outcome, detail\n         FROM audit_events\n         WHERE (?1 IS NULL OR principal_name = ?1)\n           AND (?2 IS NULL OR repository = ?2)\n           AND (?3 IS NULL OR action = ?3)\n           AND (?4 IS NULL OR outcome = ?4)\n           AND (?5 IS NULL OR ts >= ?5)\n           AND (?6 IS NULL OR ts < ?6)\n           AND (?7 IS NULL OR id < ?7)\n         ORDER BY id DESC LIMIT ?8",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "ts",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "ts"
+          }
+        }
+      },
+      {
+        "name": "principal_id",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "principal_id"
+          }
+        }
+      },
+      {
+        "name": "principal_name",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "principal_name"
+          }
+        }
+      },
+      {
+        "name": "action",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "action"
+          }
+        }
+      },
+      {
+        "name": "repository",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "repository"
+          }
+        }
+      },
+      {
+        "name": "reference",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "reference"
+          }
+        }
+      },
+      {
+        "name": "digest",
+        "ordinal": 7,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "digest"
+          }
+        }
+      },
+      {
+        "name": "client_ip",
+        "ordinal": 8,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "client_ip"
+          }
+        }
+      },
+      {
+        "name": "user_agent",
+        "ordinal": 9,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "user_agent"
+          }
+        }
+      },
+      {
+        "name": "outcome",
+        "ordinal": 10,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "name": "detail",
+        "ordinal": 11,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "audit_events",
+            "name": "detail"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "9e901bf1f5ec1625bb0bc825b98c35f46094c997db2e96950d5478e2fd159137"
+}

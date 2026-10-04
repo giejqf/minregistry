@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO manifest_refs (repository_id, manifest_digest, child_digest, kind) VALUES (?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "63b000a3be97c099012d10acff7b6101e7dee71cdaa60b2732d6d0af720b09c9"
+}

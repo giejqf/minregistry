@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO uploads (uuid, repository_id, principal_id, \"offset\", started_at, last_activity_at)\n           VALUES (?, ?, ?, 0, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "135af62ac1da74d7bf473b3c84e530abd8b80595f67ee2c188d6ac6649605db2"
+}

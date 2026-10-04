@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT pe.principal_id, p.name AS principal_name, p.kind AS principal_kind, pe.level,\n                  g.name AS \"granted_by?\", pe.granted_at\n           FROM permissions pe\n           JOIN principals p ON p.id = pe.principal_id\n           LEFT JOIN principals g ON g.id = pe.granted_by\n           WHERE pe.repository_id = ? ORDER BY p.name",
+  "describe": {
+    "columns": [
+      {
+        "name": "principal_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "permissions",
+            "name": "principal_id"
+          }
+        }
+      },
+      {
+        "name": "principal_name",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "principals",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "principal_kind",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "principals",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "name": "level",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "permissions",
+            "name": "level"
+          }
+        }
+      },
+      {
+        "name": "granted_by?",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "principals",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "granted_at",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "permissions",
+            "name": "granted_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "9ebc86f5e024003478b24afb934be3352a57084c61b4c7ceba33fe2ee9164b19"
+}

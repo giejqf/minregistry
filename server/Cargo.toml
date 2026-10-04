@@ -1,0 +1,62 @@
+[package]
+name = "minregistry"
+version = "0.1.0"
+description = "MinRegistry: a self-hosted, single-tenant OCI container registry with a management UI"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+build = "build.rs"
+
+[lib]
+name = "minregistry"
+path = "src/lib.rs"
+
+[[bin]]
+name = "minregistry"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+async-trait = "0.1"
+axum = { version = "0.8", features = ["macros"] }
+base64 = "0.22"
+bytes = "1"
+clap = { version = "4", features = ["derive"] }
+cookie = { version = "0.18", features = ["key-expansion"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+croner = "3"
+futures = "0.3"
+hex = "0.4"
+http-body-util = "0.1"
+humantime = "2"
+mime_guess = "2"
+oauth2 = { version = "5", default-features = false }
+object_store = { version = "0.14", default-features = false, features = ["aws-base", "reqwest", "ring"] }
+regex = "1"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rust-embed = { version = "8", features = ["interpolate-folder-path"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "migrate"] }
+subtle = "2"
+thiserror = "2"
+time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.7", features = ["trace", "catch-panic", "set-header"] }
+tower-sessions = { version = "0.15", features = ["private"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+url = "2"
+utoipa = { version = "6", features = ["axum_extras", "preserve_order"] }
+utoipa-axum = "0.3"
+uuid = { version = "1", features = ["v4"] }
+getrandom = "0.3"
+
+[dev-dependencies]
+reqwest = { version = "0.13", default-features = false, features = ["json", "cookies", "rustls-no-provider"] }
+tempfile = "3"

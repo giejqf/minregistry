@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM audit_events WHERE ts < ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "5bba72f91d0a360649f2affe5f0088c21d4406528ecb0634727b02afde9c3f27"
+}

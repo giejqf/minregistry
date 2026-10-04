@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT EXISTS (SELECT 1 FROM gc_sweep g WHERE g.digest = b.digest) AS \"pending_sweep!: bool\"\n           FROM blobs b WHERE b.digest = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "pending_sweep!: bool",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0795bead7149b64372b3465cb92d6d7fa1e50d4955d6c6033d46eecdf5770446"
+}

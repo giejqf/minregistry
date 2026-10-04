@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT repository_id, manifest_digest, child_digest, kind FROM manifest_refs",
+  "describe": {
+    "columns": [
+      {
+        "name": "repository_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "manifest_refs",
+            "name": "repository_id"
+          }
+        }
+      },
+      {
+        "name": "manifest_digest",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifest_refs",
+            "name": "manifest_digest"
+          }
+        }
+      },
+      {
+        "name": "child_digest",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifest_refs",
+            "name": "child_digest"
+          }
+        }
+      },
+      {
+        "name": "kind",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifest_refs",
+            "name": "kind"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2767b057e7b1c627630a135ce10346399a1a82934969424e46fcd94fa24caf1b"
+}

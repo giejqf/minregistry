@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT media_type, size FROM manifests WHERE repository_id = ? AND digest = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "media_type",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "media_type"
+          }
+        }
+      },
+      {
+        "name": "size",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "size"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "7bb0a2df2e019608819218a84d0b414d474f9600f4f0eb05dbab15c179d95d7a"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE principals SET name = ?, display_name = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "cc35b6b8e3e68a7ae6d757e38a61e2adb7c0125670302a5f040e7d636e2f082c"
+}

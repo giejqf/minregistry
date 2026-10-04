@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO repository_blobs (repository_id, digest, created_at) VALUES (?, ?, ?)\n         ON CONFLICT (repository_id, digest) DO UPDATE SET created_at = excluded.created_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "24060eaac5feafec74dd292761cc352d257f22d37363d28c83f9b85e8971b33d"
+}

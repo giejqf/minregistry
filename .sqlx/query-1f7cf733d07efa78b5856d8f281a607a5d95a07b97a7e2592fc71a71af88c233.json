@@ -1,0 +1,83 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT r.id, r.name, r.created_at, p.name AS \"created_by?\",\n                  (SELECT COUNT(*) FROM tags t WHERE t.repository_id = r.id) AS \"tag_count!: i64\",\n                  (SELECT COUNT(*) FROM manifests m WHERE m.repository_id = r.id) AS \"manifest_count!: i64\",\n                  (SELECT MAX(m.created_at) FROM manifests m WHERE m.repository_id = r.id) AS \"last_push_at?: String\"\n           FROM repositories r LEFT JOIN principals p ON p.id = r.created_by\n           WHERE r.deleted_at IS NULL AND (?1 IS NULL OR instr(r.name, ?1) > 0)\n           ORDER BY r.name LIMIT ?2 OFFSET ?3",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "repositories",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "repositories",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "repositories",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "name": "created_by?",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "principals",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "tag_count!: i64",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": "Expression"
+      },
+      {
+        "name": "manifest_count!: i64",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": "Expression"
+      },
+      {
+        "name": "last_push_at?: String",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "1f7cf733d07efa78b5856d8f281a607a5d95a07b97a7e2592fc71a71af88c233"
+}

@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT DISTINCT repository_id, manifest_digest FROM tags",
+  "describe": {
+    "columns": [
+      {
+        "name": "repository_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "tags",
+            "name": "repository_id"
+          }
+        }
+      },
+      {
+        "name": "manifest_digest",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "tags",
+            "name": "manifest_digest"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "c3c6cc1d613f88192be4eb6c3cbf6d0d891603ad0d64da5fb69ee77138f71437"
+}

@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(*) AS \"count!: i64\" FROM repositories\n           WHERE deleted_at IS NULL AND (?1 IS NULL OR instr(name, ?1) > 0)",
+  "describe": {
+    "columns": [
+      {
+        "name": "count!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b3905ca93bae66455e270915b1b5c8a3a9e9b6a9b6fcd6dceca166bd52462a6b"
+}

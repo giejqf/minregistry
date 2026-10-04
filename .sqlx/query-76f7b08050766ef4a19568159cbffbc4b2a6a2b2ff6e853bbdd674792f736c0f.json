@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM permissions WHERE principal_id = ? AND repository_id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "76f7b08050766ef4a19568159cbffbc4b2a6a2b2ff6e853bbdd674792f736c0f"
+}

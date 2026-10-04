@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT b.size FROM repository_blobs rb JOIN blobs b ON b.digest = rb.digest\n         WHERE rb.repository_id = ? AND rb.digest = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "size",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "blobs",
+            "name": "size"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "50a665249b9a2f672dcc74a4d9585a64f38fb444ac3146afd7ce8d59e1b389ed"
+}

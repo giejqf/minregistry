@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE principals SET enabled = COALESCE(?, enabled), display_name = COALESCE(?, display_name) WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "b4e0b9fe6119062fda743dca241d8799c93431932e21b3c8e3c85b31f92774fc"
+}

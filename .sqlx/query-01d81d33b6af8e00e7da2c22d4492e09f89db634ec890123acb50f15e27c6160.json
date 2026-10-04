@@ -1,0 +1,57 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT b.digest, b.size, b.created_at,\n                  (SELECT MAX(rb.created_at) FROM repository_blobs rb WHERE rb.digest = b.digest) AS \"last_linked_at?: String\"\n           FROM blobs b WHERE NOT EXISTS (SELECT 1 FROM gc_sweep g WHERE g.digest = b.digest)",
+  "describe": {
+    "columns": [
+      {
+        "name": "digest",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "blobs",
+            "name": "digest"
+          }
+        }
+      },
+      {
+        "name": "size",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "blobs",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "blobs",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "name": "last_linked_at?: String",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "01d81d33b6af8e00e7da2c22d4492e09f89db634ec890123acb50f15e27c6160"
+}

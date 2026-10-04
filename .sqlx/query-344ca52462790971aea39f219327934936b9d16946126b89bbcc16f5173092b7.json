@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT repository_id, principal_id, \"offset\" AS \"offset!: i64\" FROM uploads WHERE uuid = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "repository_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "repository_id"
+          }
+        }
+      },
+      {
+        "name": "principal_id",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "principal_id"
+          }
+        }
+      },
+      {
+        "name": "offset!: i64",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "offset"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "344ca52462790971aea39f219327934936b9d16946126b89bbcc16f5173092b7"
+}

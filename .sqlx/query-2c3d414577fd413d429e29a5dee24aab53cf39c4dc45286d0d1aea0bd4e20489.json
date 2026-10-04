@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM gc_sweep WHERE digest = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "2c3d414577fd413d429e29a5dee24aab53cf39c4dc45286d0d1aea0bd4e20489"
+}

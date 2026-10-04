@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO manifests (repository_id, digest, media_type, size, subject_digest, artifact_type,\n                                annotations, platforms, created_at, pushed_by)\n         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n         ON CONFLICT (repository_id, digest) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": []
+  },
+  "hash": "9328d6ad3b019ffc8bc9c0527def61d511521896821fe8db8b840c790aa28172"
+}

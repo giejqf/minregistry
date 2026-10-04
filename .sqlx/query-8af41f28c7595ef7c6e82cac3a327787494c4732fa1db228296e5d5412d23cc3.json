@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO gc_sweep (digest, marked_at) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "8af41f28c7595ef7c6e82cac3a327787494c4732fa1db228296e5d5412d23cc3"
+}

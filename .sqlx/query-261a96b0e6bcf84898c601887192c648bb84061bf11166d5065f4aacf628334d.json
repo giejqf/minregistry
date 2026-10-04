@@ -1,0 +1,122 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT m.digest, m.media_type, m.size, m.subject_digest, m.artifact_type, m.annotations, m.platforms,\n                  m.created_at, p.name AS \"pushed_by?\"\n           FROM manifests m LEFT JOIN principals p ON p.id = m.pushed_by\n           WHERE m.repository_id = ? ORDER BY m.created_at DESC, m.digest",
+  "describe": {
+    "columns": [
+      {
+        "name": "digest",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "digest"
+          }
+        }
+      },
+      {
+        "name": "media_type",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "media_type"
+          }
+        }
+      },
+      {
+        "name": "size",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "name": "subject_digest",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "subject_digest"
+          }
+        }
+      },
+      {
+        "name": "artifact_type",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "artifact_type"
+          }
+        }
+      },
+      {
+        "name": "annotations",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "annotations"
+          }
+        }
+      },
+      {
+        "name": "platforms",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "platforms"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 7,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manifests",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "name": "pushed_by?",
+        "ordinal": 8,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "principals",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "261a96b0e6bcf84898c601887192c648bb84061bf11166d5065f4aacf628334d"
+}

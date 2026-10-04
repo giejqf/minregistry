@@ -1,0 +1,33 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT principal_id, COUNT(*) AS \"count!: i64\" FROM tokens\n           WHERE revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)\n           GROUP BY principal_id",
+  "describe": {
+    "columns": [
+      {
+        "name": "principal_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "tokens",
+            "name": "principal_id"
+          }
+        }
+      },
+      {
+        "name": "count!: i64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "d55c7cf961bf7806326d50fd03bac219f87df0d3be97b2fd7a09313cf5f3f867"
+}
