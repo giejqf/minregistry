@@ -535,3 +535,69 @@ async fn status_waits_for_an_interrupted_chunk() {
     assert_eq!(res.status(), 204);
     assert_eq!(res.headers()[header::RANGE], format!("0-{}", sent - 1).as_str());
 }
+
+/// Clients retry a 401 with credentials on the same connection. When the
+/// server answers before reading the request body, the connection must still
+/// work: a small body is read and discarded before the answer, a large one
+/// gets `Connection: close`. Otherwise the retried `PUT` fails with EOF, as
+/// it did for the conformance suite's client.
+#[tokio::test]
+async fn early_answers_keep_the_connection_usable() {
+    use tokio::{io::AsyncWriteExt, net::TcpStream};
+
+    let srv = TestServer::start().await;
+    let mut tcp = tokio::io::BufReader::new(TcpStream::connect(srv.addr).await.unwrap());
+
+    // The body arrives after the server has decided to answer 401.
+    let body = br#"{"schemaVersion":2}"#;
+    let head = format!(
+        "PUT /v2/early/answer/manifests/v1 HTTP/1.1\r\nHost: {}\r\n\
+         Content-Type: application/vnd.oci.image.manifest.v1+json\r\nContent-Length: {}\r\n\r\n",
+        srv.addr,
+        body.len()
+    );
+    tcp.get_mut().write_all(head.as_bytes()).await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    tcp.get_mut().write_all(body).await.unwrap();
+    let (status, head) = read_response(&mut tcp).await;
+    assert_eq!(status, 401);
+    assert!(!head.contains("connection: close"), "{head}");
+
+    // The same connection serves the next request.
+    tcp.get_mut().write_all(format!("GET /v2/ HTTP/1.1\r\nHost: {}\r\n\r\n", srv.addr).as_bytes()).await.unwrap();
+    assert_eq!(read_response(&mut tcp).await.0, 401);
+
+    // Too large to read for nothing, or held back until `100 Continue`: the
+    // answer says that the connection closes.
+    for (extra, len) in [("", 64 * 1024 * 1024), ("Expect: 100-continue\r\n", 1000)] {
+        let mut tcp = tokio::io::BufReader::new(TcpStream::connect(srv.addr).await.unwrap());
+        let head = format!(
+            "PUT /v2/early/answer/blobs/uploads/x HTTP/1.1\r\nHost: {}\r\n{extra}Content-Length: {len}\r\n\r\n",
+            srv.addr
+        );
+        tcp.get_mut().write_all(head.as_bytes()).await.unwrap();
+        let (status, head) = read_response(&mut tcp).await;
+        assert_eq!(status, 401);
+        assert!(head.contains("connection: close"), "{head}");
+    }
+}
+
+/// Reads one HTTP/1.1 response; returns the status and the lowercased head.
+async fn read_response(tcp: &mut tokio::io::BufReader<tokio::net::TcpStream>) -> (u16, String) {
+    use tokio::io::{AsyncBufReadExt, AsyncReadExt};
+
+    let mut head = String::new();
+    loop {
+        let mut line = String::new();
+        assert!(tcp.read_line(&mut line).await.unwrap() > 0, "the server closed the connection");
+        if line == "\r\n" {
+            break;
+        }
+        head.push_str(&line.to_ascii_lowercase());
+    }
+    let status = head[9..12].parse().unwrap();
+    let len = head.lines().find_map(|l| l.strip_prefix("content-length: ")).map_or(0, |v| v.trim().parse().unwrap());
+    let mut body = vec![0; len];
+    tcp.read_exact(&mut body).await.unwrap();
+    (status, head)
+}

@@ -30,7 +30,7 @@ use crate::{
     db::Db,
     registry::{self, UploadManager},
     storage::{self, Storage},
-    tasks, ui,
+    tasks, ui, unread_body,
 };
 
 pub(crate) struct StateInner {
@@ -131,6 +131,7 @@ fn router(state: AppState) -> Router {
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
         .fallback(ui::serve)
+        .layer(middleware::from_fn(unread_body::finish_request_body))
         .layer(middleware::from_fn(trace))
         .layer(CatchPanicLayer::new())
         .with_state(state)

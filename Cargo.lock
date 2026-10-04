@@ -1522,6 +1522,7 @@ dependencies = [
  "futures",
  "getrandom 0.3.4",
  "hex",
+ "http-body",
  "http-body-util",
  "humantime",
  "mime_guess",

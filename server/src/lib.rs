@@ -21,6 +21,7 @@ pub(crate) mod storage;
 pub(crate) mod tasks;
 pub(crate) mod time;
 pub(crate) mod ui;
+pub(crate) mod unread_body;
 
 pub use api::openapi_json;
 pub use app::App;
