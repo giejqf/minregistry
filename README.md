@@ -88,6 +88,9 @@ pnpm --dir web install && pnpm --dir web dev   # UI on :5173, proxying to :5000
    `DOCKERHUB_TOKEN`; the image name can be overridden with the repository
    variable `DOCKERHUB_IMAGE`. Run it by hand (`gh workflow run release -f tag=vX.Y.Z`)
    to republish an existing tag.
+4. The Docker Hub overview is `docs/docker-hub.md`; changes to it on `main`
+   are synced by `.github/workflows/dockerhub-overview.yml` (the token needs
+   read, write & delete scope for this).
 
 ## License
 

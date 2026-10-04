@@ -1,0 +1,29 @@
+name: docker-hub-overview
+
+# Keeps the Docker Hub repository overview in sync with docs/docker-hub.md.
+# Uses the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets; updating a
+# repository description needs a token with read, write & delete scope.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/docker-hub.md
+      - .github/workflows/dockerhub-overview.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  overview:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ vars.DOCKERHUB_IMAGE || 'giejqf/minregistry' }}
+          short-description: Self-hosted OCI/Docker registry with a web UI, GitHub sign-in, per-repo permissions and audit log
+          readme-filepath: ./docs/docker-hub.md
