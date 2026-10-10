@@ -5,7 +5,9 @@ management UI, shipped as one binary.
 
 - **OCI Distribution Spec v1.1**, complete: push/pull, chunked and monolithic
   uploads (resumable), range requests, tag listing, manifest/tag/blob delete,
-  the referrers API, cross-repository blob mount — plus garbage collection.
+  the referrers API, cross-repository blob mount — plus garbage collection,
+  and the Docker catalog (`/v2/_catalog`) for registry browsers such as
+  Synology's Container Manager, limited to what the caller may pull.
   Passes the official conformance suite and is tested with `docker`, `crane`,
   `skopeo` and `oras`.
 - **No anonymous access.** Registry clients authenticate with HTTP Basic:

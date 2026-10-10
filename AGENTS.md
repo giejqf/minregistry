@@ -394,7 +394,8 @@ A change is done when **all** of the following pass locally and in CI:
 - Permission matrix: identity with `read` cannot push (403, audited
   `denied`); identity with no grant gets 403 on pull; revoked token → 401.
 - `crane copy` from a public registry into MinRegistry; `crane ls`; `crane
-  delete` by digest; `crane manifest` on index.
+  delete` by digest; `crane manifest` on index; `crane catalog` lists only
+  the repositories the identity may pull.
 - `skopeo copy` both directions, `skopeo inspect`, `skopeo delete`.
 - `oras push` an arbitrary artifact with `--artifact-type`, `oras attach`
   to an image, `oras discover` (exercises referrers), `oras pull`.

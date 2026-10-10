@@ -23,7 +23,7 @@ checks exit codes and asserts the expected audit events
 |---|---|
 | `clients/01-docker.sh` | `docker login` success and failure; push to a new repository (auto-create, pusher becomes owner); pull by tag and by digest; multi-arch push with `docker buildx imagetools create` and pull |
 | `clients/02-permissions.sh` | `read` cannot push (403, audited `denied`); no grant gets 403 on pull and push; revoked token → 401 |
-| `clients/03-crane.sh` | `crane copy` from `registry.k8s.io`; `crane ls`; `crane manifest` on an index; `crane delete` by digest |
+| `clients/03-crane.sh` | `crane copy` from `registry.k8s.io`; `crane ls`; `crane catalog` (only readable repositories); `crane manifest` on an index; `crane delete` by digest |
 | `clients/04-skopeo.sh` | `skopeo copy` into MinRegistry and out of it (to an OCI layout and back); `skopeo inspect`; `skopeo delete` |
 | `clients/05-oras.sh` | `oras push --artifact-type`; `oras attach` to an image; `oras discover` (referrers API); `oras pull` |
 | `clients/06-chunked-resume.sh` | chunked upload of a 128 MiB layer, interrupted mid-chunk and resumed from the reported `Range`; ranged download |

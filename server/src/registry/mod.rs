@@ -11,6 +11,7 @@ pub(crate) mod manifest_parse;
 pub(crate) mod names;
 
 mod blobs;
+mod catalog;
 mod manifests;
 mod range;
 mod referrers;
@@ -198,6 +199,10 @@ async fn route(ctx: &Ctx, method: &Method, endpoint: Endpoint, body: Body) -> Ap
     match endpoint {
         Base => match m {
             Method::GET | Method::HEAD => base(ctx, &m).await,
+            _ => Err(method_not_allowed()),
+        },
+        Catalog => match m {
+            Method::GET => catalog::list(ctx).await,
             _ => Err(method_not_allowed()),
         },
         Tags { name } => {

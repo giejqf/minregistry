@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# crane: copy from a public registry, ls, manifest of an index, delete by digest.
+# crane: copy from a public registry, ls, catalog, manifest of an index, delete by digest.
 source "$(dirname "$0")/../lib.sh"
 
 user=$(unique e2e-crane)
@@ -14,6 +14,13 @@ pass "crane copy registry.k8s.io/pause:3.10 (all platforms)"
 crane ls "$REGISTRY/$repo" | grep -qx '3.10' || fail "crane ls does not list 3.10"
 assert_audit "$user" tag.list "$repo"
 pass "crane ls"
+
+# The catalog lists only what this identity may pull: its own repository,
+# none of those the other scenarios pushed.
+catalog=$(crane catalog "$REGISTRY") || fail "crane catalog failed"
+[[ "$catalog" == "$repo" ]] || fail "crane catalog listed: $(echo "$catalog" | tr '\n' ' ')"
+assert_audit "$user" catalog.list ""
+pass "crane catalog lists only readable repositories"
 
 crane manifest "$REGISTRY/$repo:3.10" |
   jq -e '(.mediaType | test("index|manifest.list")) and (.manifests | length) > 1' >/dev/null ||

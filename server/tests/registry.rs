@@ -601,3 +601,54 @@ async fn read_response(tcp: &mut tokio::io::BufReader<tokio::net::TcpStream>) ->
     tcp.read_exact(&mut body).await.unwrap();
     (status, head)
 }
+
+/// `/v2/_catalog`, which registry browsers such as Synology's Container
+/// Manager use, lists only the repositories the caller may pull from, pages
+/// like the tag list and is audited.
+#[tokio::test]
+async fn catalog_lists_readable_repositories() {
+    let srv = TestServer::start().await;
+    let (_, alice) = srv.identity("alice").await;
+    let alice_reg = srv.registry("alice", &alice);
+    for name in ["team/web", "team/api", "tools/ci"] {
+        alice_reg.push_image(name, "v1", "amd64").await;
+    }
+    let (bob_id, bob) = srv.identity("bob").await;
+    let bob_reg = srv.registry("bob", &bob);
+    bob_reg.push_image("bob/own", "v1", "amd64").await;
+    srv.grant("team/web", &bob_id, "read").await;
+
+    assert_eq!(catalog(&alice_reg, "").await, (names(&["team/api", "team/web", "tools/ci"]), None));
+    assert_eq!(catalog(&bob_reg, "").await, (names(&["bob/own", "team/web"]), None));
+    let admin = srv.admin_registry().await;
+    assert_eq!(catalog(&admin, "").await.0, names(&["bob/own", "team/api", "team/web", "tools/ci"]));
+    srv.assert_audit("bob", "catalog.list", None, None, "ok").await;
+
+    // Pages, as for tags.
+    let link = r#"</v2/_catalog?n=2&last=team%2Fweb>; rel="next""#;
+    assert_eq!(catalog(&alice_reg, "?n=2").await, (names(&["team/api", "team/web"]), Some(link.to_string())));
+    assert_eq!(catalog(&alice_reg, "?n=2&last=team%2Fweb").await, (names(&["tools/ci"]), None));
+    assert_eq!(alice_reg.status(Method::GET, "/v2/_catalog?n=-1").await, 400);
+
+    // Deleted repositories disappear; anonymous callers get the challenge.
+    let id = srv.repo_id("tools/ci").await;
+    let (status, _) = srv.admin.call(Method::DELETE, &format!("/repositories/{id}"), None).await;
+    assert!((200..300).contains(&status), "{status}");
+    assert_eq!(catalog(&alice_reg, "").await.0, names(&["team/api", "team/web"]));
+    let res = srv.anonymous().req(Method::GET, "/v2/_catalog").send().await.unwrap();
+    assert_eq!(res.status(), 401);
+    assert!(res.headers().contains_key(header::WWW_AUTHENTICATE));
+}
+
+fn names(names: &[&str]) -> Vec<String> {
+    names.iter().map(|n| n.to_string()).collect()
+}
+
+/// One page of the catalog: the repository names and the `Link` header.
+async fn catalog(reg: &Registry, query: &str) -> (Vec<String>, Option<String>) {
+    let res = reg.req(Method::GET, &format!("/v2/_catalog{query}")).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+    let link = res.headers().get(header::LINK).map(|v| v.to_str().unwrap().to_string());
+    let body: Value = res.json().await.unwrap();
+    (serde_json::from_value(body["repositories"].clone()).unwrap(), link)
+}

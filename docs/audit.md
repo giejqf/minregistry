@@ -47,6 +47,7 @@ deletion is retention (`MINREGISTRY_AUDIT_RETENTION_DAYS`), itself audited.
 | `tag.delete` | A tag is deleted (the manifest stays). | tag / digest | — |
 | `tag.list` | Tags are listed. | — | `count` |
 | `referrers.list` | The referrers of a manifest are listed. | — / subject digest | `count`, `artifactType` |
+| `catalog.list` | The repository list (`GET /v2/_catalog`) is read. It shows only the repositories the principal may pull from. | — | `count` |
 
 Any of these may also appear with `outcome = denied` when the principal lacks
 the required permission; `detail.required` names it (`pull`, `push`, `delete`,

@@ -28,6 +28,7 @@ pub(crate) mod action {
     pub(crate) const TAG_DELETE: &str = "tag.delete";
     pub(crate) const TAG_LIST: &str = "tag.list";
     pub(crate) const REFERRERS_LIST: &str = "referrers.list";
+    pub(crate) const CATALOG_LIST: &str = "catalog.list";
     // Management (/api/v1/, /auth/) and maintenance
     pub(crate) const ADMIN_LOGIN: &str = "admin.login";
     pub(crate) const ADMIN_LOGOUT: &str = "admin.logout";
@@ -56,6 +57,7 @@ pub(crate) mod action {
         TAG_DELETE,
         TAG_LIST,
         REFERRERS_LIST,
+        CATALOG_LIST,
         ADMIN_LOGIN,
         ADMIN_LOGOUT,
         PRINCIPAL_CREATE,

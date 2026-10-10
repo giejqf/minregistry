@@ -9,7 +9,9 @@ management UI, shipped as one small image (`linux/amd64`, `linux/arm64`).
   uploads, range requests, the referrers API (signatures, SBOMs,
   attestations), cross-repository blob mounts, deletes and garbage
   collection. Passes the official conformance suite and is tested with
-  `docker`, `crane`, `skopeo` and `oras`.
+  `docker`, `crane`, `skopeo` and `oras`. Registry browsers that use the
+  Docker catalog (`/v2/_catalog`), such as Synology's Container Manager, see
+  the repositories their identity may pull from.
 - **No anonymous access.** Clients authenticate with HTTP Basic: a named
   identity (`ci-deploy`, `alice`) and a revocable token.
 - **Per-repository permissions**: `read`, `write`, `owner`. Pushing to a new
@@ -142,6 +144,14 @@ server {
     }
 }
 ```
+
+## Synology Container Manager
+
+In DSM, open *Container Manager → Registry → Settings → Add*. Enter
+`https://registry.example.com` as the registry URL, with the host only and no
+path. For the login, use an identity's name and one of its tokens. Then select
+the registry and click *Use*. The registry shows the repositories that
+identity may pull from.
 
 ## Configuration
 

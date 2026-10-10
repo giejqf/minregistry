@@ -52,6 +52,8 @@ pub(crate) fn valid_tag(tag: &str) -> bool {
 pub(crate) enum Endpoint {
     /// `/v2/`
     Base,
+    /// `/v2/_catalog` (the Docker registry API's repository list; not in the OCI spec)
+    Catalog,
     /// `/v2/<name>/tags/list`
     Tags { name: String },
     /// `/v2/<name>/manifests/<reference>`
@@ -70,6 +72,9 @@ pub(crate) enum Endpoint {
 pub(crate) fn parse_path(rest: &str) -> Option<Endpoint> {
     if rest.is_empty() {
         return Some(Endpoint::Base);
+    }
+    if rest == "_catalog" {
+        return Some(Endpoint::Catalog);
     }
     let segs: Vec<&str> = rest.split('/').collect();
     let n = segs.len();
@@ -135,6 +140,7 @@ mod tests {
     #[test]
     fn paths() {
         assert_eq!(parse_path(""), Some(Base));
+        assert_eq!(parse_path("_catalog"), Some(Catalog));
         assert_eq!(parse_path("a/b/tags/list"), Some(Tags { name: s("a/b") }));
         assert_eq!(parse_path("a/manifests/latest"), Some(Manifest { name: s("a"), reference: s("latest") }));
         assert_eq!(parse_path("a/blobs/sha256:00"), Some(Blob { name: s("a"), digest: s("sha256:00") }));
@@ -145,7 +151,7 @@ mod tests {
         // Components that look like endpoint keywords belong to the name.
         assert_eq!(parse_path("x/manifests/blobs/uploads/"), Some(UploadStart { name: s("x/manifests") }));
         assert_eq!(parse_path("tags/list/manifests/v1"), Some(Manifest { name: s("tags/list"), reference: s("v1") }));
-        for bad in ["a", "a/b", "manifests/latest", "a/manifests/", "a/unknown/x", "blobs/uploads/"] {
+        for bad in ["a", "a/b", "manifests/latest", "a/manifests/", "a/unknown/x", "blobs/uploads/", "_catalog/x"] {
             assert_eq!(parse_path(bad), None, "{bad}");
         }
     }

@@ -106,6 +106,31 @@ pub(crate) async fn list(
     .await
 }
 
+/// Names of the live repositories that `principal_id` may pull from (every
+/// grant level includes `read`; admins may pull from all), in name order,
+/// after `last`.
+pub(crate) async fn readable_names(
+    db: impl SqliteExecutor<'_>,
+    principal_id: i64,
+    is_admin: bool,
+    last: Option<&str>,
+    limit: i64,
+) -> sqlx::Result<Vec<String>> {
+    sqlx::query_scalar!(
+        r#"SELECT r.name FROM repositories r
+           WHERE r.deleted_at IS NULL
+             AND (?1 OR EXISTS (SELECT 1 FROM permissions pe WHERE pe.repository_id = r.id AND pe.principal_id = ?2))
+             AND (?3 IS NULL OR r.name > ?3)
+           ORDER BY r.name LIMIT ?4"#,
+        is_admin,
+        principal_id,
+        last,
+        limit
+    )
+    .fetch_all(db)
+    .await
+}
+
 pub(crate) async fn count(db: impl SqliteExecutor<'_>, query: Option<&str>) -> sqlx::Result<i64> {
     sqlx::query_scalar!(
         r#"SELECT COUNT(*) AS "count!: i64" FROM repositories
